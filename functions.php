@@ -4,6 +4,7 @@
 // https://github.com/amarriner/KlepekVsRemo/
 
 // Checks to see if the player's data has already been tweeted
+// this is not at all necessary
 function check_today($player) {
 	$found = 1;
 
@@ -80,6 +81,29 @@ function get_group_members($group) {
 	return $array['members']['steamID64'];
 }
 
+function get_player_info($steamid) {
+	$xml = file_get_contents("http://steamcommunity.com/profiles/" . $steamid . "/?xml=1");
+	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+	$json = json_encode($ob);
+	$array = json_decode($json, TRUE);
+
+	$info['steamid'] = $steamid;
+	$info['name'] = $array['steamID'];
+	$info['avatar'] = $array['avatarIcon'];
+
+	return $info;
+}
+
+// insert or update player data
+function update_player($player, $new = TRUE) {
+	global $db;
+
+	if ($new) $query = "INSERT INTO spelunky_players(steamid, name, avatar) VALUES(" . $player['steamid'] . ",'" . addslashes($player['name']) . "', '" . $player['avatar'] . "')";
+	else $query = "UPDATE spelunky_players SET name='" . addslashes($player['name']) . "', avatar='" . $player['avatar'] . "' WHERE steamid=" . $player['steamid'];
+
+	$db->query($query);
+}
+
 // I'll have to do work on this, so, uh, it doesn't exist
 function get_youtube() {
 }
@@ -92,6 +116,7 @@ function post_leaderboard() {
 function store_leaderboard() {
 }
 
+// if I want to do something with the character used
 function character_icon($id) {
 	$colors = array(
 			'orange',

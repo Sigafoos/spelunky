@@ -140,6 +140,6 @@ function character_icon($id) {
 			'dlc8'
 		       );
 
-	// stuff
+	return $colors[$id];
 }
 ?>

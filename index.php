@@ -29,6 +29,7 @@ while ($row = $result->fetch_assoc()) {
 	$database[$row['steamid']]['updated'] = $row['updated'];
 }
 
+$i = 1;
 foreach ($leaderboard as $steamid=>&$entry) {
 	if (!$database[$steamid]) { // also deal with if it was last updated X days ago
 		echo "<p>" . $steamid . " is not in the database yet</p>";
@@ -42,11 +43,13 @@ foreach ($leaderboard as $steamid=>&$entry) {
 
 	$entry['name'] = $database[$steamid]['name'];
 	$entry['avatar'] = $database[$steamid]['avatar'];
+
+	echo "<h2>" . $i . " <img src=\"images/char_" . character_icon($entry['character']) . ".png\" \>" . $entry['name'] . "</h2>\r";
+	echo "<p><strong>Score</strong>: $" . $entry['score'] . "</p>";
+	echo "<p><strong>Died on</strong>: " . $entry['level'] . "</p>";
+	$i++;
 }
 
-echo "<pre>";
-print_r($leaderboard);
-echo "</pre>";
 ?>
 </body>
 </html>

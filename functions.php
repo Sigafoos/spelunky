@@ -68,11 +68,12 @@ function get_leaderboard_data($members, $leaderboard) {
 	return $scores;
 }
 
-// Find the id for today's daily challenge leaderboard
-function get_todays_leaderboard() {
+// Find the id for the daily challenge leaderboard. Defaults to today.
+function get_leaderboard($date = FALSE) {
+	if (!$date) $date = date('m/d/Y');
+	$today = date("m/d/Y",strtotime($date)) . ' DAILY';
 	$leaderboard = '';
 
-	$today = date('m/d/Y') . ' DAILY';
 	$url = 'http://steamcommunity.com/stats/239350/leaderboards/?xml=1';
 
 	$xml = file_get_contents($url);
@@ -130,8 +131,14 @@ function get_youtube() {
 function post_leaderboard() {
 }
 
-function store_leaderboard($leaderboard, $leaderboard_id) {
+function save_leaderboard($leaderboard, $leaderboard_id) {
 	global $db;
+
+	$query = "SELECT steamid FROM spelunky_game_entry WHERE leaderboard_id=" . $leaderboard_id;
+	$result = $db->query($query);
+	while ($row = $result->fetch_assoc()) $played[$row['steamid']] = TRUE;
+
+	// return!
 }
 
 function print_leaderboard($leaderboard) {
@@ -142,6 +149,12 @@ function print_leaderboard($leaderboard) {
 		echo "<p><strong>Died on</strong>: " . $entry['level'] . "</p>";
 		$i++;
 	}
+}
+
+// by default, get today's leaderboard on BGG, but you can specify a date
+function update_leaderboard($leaderboard, $date = FALSE) {
+	if (!$date) $date = date('Y-m-d');
+	echo "This doesn't do anything yet";
 }
 
 // if I want to do something with the character used

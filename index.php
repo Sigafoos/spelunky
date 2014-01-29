@@ -13,7 +13,7 @@ require('functions.php');
 $members = get_group_members("103582791432200102");
 
 // get the current leaderboard
-$leaderboard_id = get_todays_leaderboard();
+$leaderboard_id = get_leaderboard();
 $leaderboard = get_leaderboard_data($members,$leaderboard_id);
 
 print_leaderboard($leaderboard);

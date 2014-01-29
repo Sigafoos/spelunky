@@ -112,8 +112,17 @@ function get_youtube() {
 function post_leaderboard() {
 }
 
-// I'll have to do work on this, so, uh, it doesn't exist
-function store_leaderboard() {
+function store_leaderboard($leaderboard) {
+}
+
+function print_leaderboard($leaderboard) {
+	$i = 1;
+	foreach ($leaderboard as $entry) {
+		echo "<h2>" . $i . " <img src=\"images/char_" . character_icon($entry['character']) . ".png\" \>" . $entry['name'] . "</h2>\r";
+		echo "<p><strong>Score</strong>: $" . $entry['score'] . "</p>";
+		echo "<p><strong>Died on</strong>: " . $entry['level'] . "</p>";
+		$i++;
+	}
 }
 
 // if I want to do something with the character used

@@ -1,5 +1,6 @@
 <?php
 require('functions.php');
+if (!$_GET['date']) $_GET['date'] = date("Y-m-d");
 ?>
 <!DOCTYPE html>
 <html>
@@ -9,8 +10,13 @@ require('functions.php');
 <body>
 <h1>Spelunky!</h1>
 <?php
+echo "<p><a href=\"?date=" . date("Y-m-d",strtotime("-1 day",strtotime($_GET['date']))) . "\">previous day</a> | ";
+if (strtotime($_GET['date']) >= strtotime(date("Y-m-d",strtotime("now")))) echo "next day";
+else echo "<p><a href=\?date=" . date("Y-m-d",strtotime("+1 day",strtotime($_GET['date']))) . "\">next day</a>";
+echo "</p>";
+ 
 // get the current leaderboard
-$leaderboard_id = get_leaderboard();
+$leaderboard_id = get_leaderboard($_GET['date']);
 $leaderboard = get_saved_leaderboard($leaderboard_id);
 print_leaderboard($leaderboard);
 ?>

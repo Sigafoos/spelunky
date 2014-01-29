@@ -74,7 +74,10 @@ function get_leaderboard_data($members, $leaderboard_id) {
 
 // Find the id for the daily challenge leaderboard. Defaults to today.
 function get_leaderboard($date = FALSE) {
+	global $db;
+
 	if (!$date) $date = date('m/d/Y');
+	else $date = date("m/d/Y",strtotime($date));
 	$today = date("m/d/Y",strtotime($date)) . ' DAILY';
 	$leaderboard = '';
 
@@ -91,7 +94,21 @@ function get_leaderboard($date = FALSE) {
 		}
 	}
 
+	if ($leaderboard) {
+		$query = "SELECT date FROM spelunky_games WHERE leaderboard_id=" . $leaderboard;
+		$result = $db->query($query);
+		$row = $result->fetch_assoc();
 
+		// this is the first time we've loaded this leaderboard
+		// it will save the id even if there are no scores, yes. 
+		// and we have to check again to see if we've posted the geeklist item
+		// (which we DO only do if there are scores). it's not perfect, but
+		// if we don't do it here the date is kind of a pain to pass in.
+		if (!$row) {
+			$query = "INSERT INTO spelunky_games(leaderboard_id, date) VALUES(" . $leaderboard . ", '" . date("Y-m-d",strtotime($date)) . "')";
+			$db->query($query);
+		}
+	}
 
 	return $leaderboard;
 }

@@ -214,6 +214,7 @@ function print_leaderboard($leaderboard) {
 		echo "<h2>" . $i . " <img src=\"images/char_" . character_icon($entry['character']) . ".png\" \>" . $entry['name'] . "</h2>\r";
 		echo "<p><strong>Score</strong>: $" . number_format($entry['score']) . "</p>";
 		echo "<p><strong>Died on</strong>: " . $entry['level'] . "</p>";
+		echo "<p><a href=\"stats.php?player=" . $entry['name'] . "\">Player stats</a></p>\r";
 		$i++;
 	}
 }

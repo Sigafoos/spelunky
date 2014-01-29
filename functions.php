@@ -136,6 +136,7 @@ function character_icon($id) {
 			'dlc3',
 			'dlc4',
 			'dlc5',
+			'dlc6',
 			'dlc7',
 			'dlc8'
 		       );

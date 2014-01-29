@@ -3,7 +3,7 @@
 // https://github.com/amarriner/KlepekVsRemo/
 
 // you don't get my db info!
-require('../db_connect.php');
+require('/var/www/db_connect.php');
 
 // Checks to see if the player's data has already been tweeted
 // this is not at all necessary
@@ -19,16 +19,19 @@ function check_today($player) {
 }
 
 // Retrieves the players' leaderboard data for today
-function get_leaderboard_data($members, $leaderboard) {
+function get_leaderboard_data($members, $leaderboard_id) {
 	global $db;
 	$score = -1;
+	$scores = array();
 
 	// using my id, then grabbing the scores for anyone in the group
-	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard . '/?xml=1&steamid=76561198000338942';
+	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard_id . '/?xml=1&steamid=76561198000338942';
 	$xml = file_get_contents($player_spelunky_leaderboard);
 	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 	$json = json_encode($ob);
 	$array = json_decode($json, true);
+
+	if (!$array['entries']) return NULL;
 
 	// get the player info
 	$query = "SELECT steamid, name, avatar, updated FROM spelunky_players";
@@ -64,6 +67,7 @@ function get_leaderboard_data($members, $leaderboard) {
 		}
 	}
 
+
 	// IF THERE ARE PEOPLE IN THE GROUP NOT PRESENT, CHECK AGAIN?
 	return $scores;
 }
@@ -85,6 +89,23 @@ function get_leaderboard($date = FALSE) {
 		if ($value['name'] == $today) {
 			$leaderboard = $value['lbid'];
 		}
+	}
+
+
+
+	return $leaderboard;
+}
+
+function get_saved_leaderboard($leaderboard_id) {
+	global $db;
+
+	$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $leaderboard_id . " ORDER BY score DESC";
+	$result = $db->query($query);
+	while ($row = $result->fetch_assoc()) {
+		$leaderboard[$row['steamid']]['name'] = $row['name'];
+		$leaderboard[$row['steamid']]['score'] = $row['score'];
+		$leaderboard[$row['steamid']]['level'] = $row['level'];
+		$leaderboard[$row['steamid']]['character'] = $row['character_used'];
 	}
 
 	return $leaderboard;
@@ -133,12 +154,41 @@ function post_leaderboard() {
 
 function save_leaderboard($leaderboard, $leaderboard_id) {
 	global $db;
+	$changed = FALSE;
 
 	$query = "SELECT steamid FROM spelunky_game_entry WHERE leaderboard_id=" . $leaderboard_id;
 	$result = $db->query($query);
-	while ($row = $result->fetch_assoc()) $played[$row['steamid']] = TRUE;
+	// if we have an entry, skip them
+	while ($row = $result->fetch_assoc()) {
+		if ($leaderboard[$row['steamid']]) {
+			// it'd be super great if there was an array_remove type function besides array_slice, 
+			// which doesn't work well/at all with associative arrays
+			$leaderboard = array_remove($row['steamid'],$leaderboard);
+		}
+	}
 
-	// return!
+	// is there anything that hasn't been inserted yet?
+	if (count($leaderboard) > 0) {
+		$changed = TRUE;
+
+		foreach($leaderboard as $steamid=>$entry) {
+			$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
+			$db->query($query);
+		}
+	}
+
+	// if we have new data, have we posted the geeklist yet?
+	/*
+	if ($changed) {
+		$query = "SELECT geeklist FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
+		$result = $db->query($query);
+		$row = $result->fetch_assoc();
+		if (!$row['geeklist']) {
+		}
+	}
+	*/
+
+	return $changed;
 }
 
 function print_leaderboard($leaderboard) {
@@ -183,5 +233,14 @@ function character_icon($id) {
 		       );
 
 	return $colors[$id];
+}
+
+// I don't like this
+function array_remove($needle, $haystack) {
+	$tmp = array();
+
+	foreach ($haystack as $key=>$value) if ($key !== $needle) $tmp[$key] = $value;
+
+	return $tmp;
 }
 ?>

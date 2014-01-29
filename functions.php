@@ -1,5 +1,4 @@
 <?php
-
 // pretty much everything useful here was stolen from the KlepekVsRemo repository:
 // https://github.com/amarriner/KlepekVsRemo/
 
@@ -18,7 +17,6 @@ function check_today($player) {
 
 // Retrieves the player's leaderboard data for today
 function get_leaderboard_data($members, $leaderboard) {
-	//$steamid = $player->steamid; // I have their id
 	$score = -1;
 
 	// using my id, then grabbing the scores for anyone in the group
@@ -28,11 +26,6 @@ function get_leaderboard_data($members, $leaderboard) {
 	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 	$json = json_encode($ob);
 	$array = json_decode($json, true);
-	/*
-	   echo "<pre>";
-	   print_r($array);
-	   echo "</pre>";
-	   */
 
 	foreach($array['entries']['entry'] as $key => $value) {
 		if (in_array($value['steamid'],$members)) {

@@ -2,6 +2,9 @@
 // pretty much everything useful here was stolen from the KlepekVsRemo repository:
 // https://github.com/amarriner/KlepekVsRemo/
 
+// you don't get my db info!
+require('../db_connect.php');
+
 // Checks to see if the player's data has already been tweeted
 // this is not at all necessary
 function check_today($player) {
@@ -15,17 +18,26 @@ function check_today($player) {
 	return $found;
 }
 
-// Retrieves the player's leaderboard data for today
+// Retrieves the players' leaderboard data for today
 function get_leaderboard_data($members, $leaderboard) {
+	global $db;
 	$score = -1;
 
 	// using my id, then grabbing the scores for anyone in the group
 	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard . '/?xml=1&steamid=76561198000338942';
-
 	$xml = file_get_contents($player_spelunky_leaderboard);
 	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 	$json = json_encode($ob);
 	$array = json_decode($json, true);
+
+	// get the player info
+	$query = "SELECT steamid, name, avatar, updated FROM spelunky_players";
+	$result = $db->query($query);
+	while ($row = $result->fetch_assoc()) {
+		$database[$row['steamid']]['name'] = $row['name'];
+		$database[$row['steamid']]['avatar'] = $row['avatar'];
+		$database[$row['steamid']]['updated'] = $row['updated'];
+	}
 
 	foreach($array['entries']['entry'] as $key => $value) {
 		if (in_array($value['steamid'],$members)) {
@@ -37,9 +49,22 @@ function get_leaderboard_data($members, $leaderboard) {
 			// Levels ares stored as hex values from 0-19, so convert them into what's shown on the leaderboards in-game
 			$level = hexdec(substr($value['details'], 8, 2));
 			$scores[$value['steamid']]['level'] = ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));
+
+			// do we know you?
+			if (!$database[$value['steamid']]) { // also deal with if it was last updated X days ago
+				$info = get_player_info($value['steamid']);
+				update_player($info);
+
+				$database[$value['steamid']]['name'] = $info['name'];
+				$database[$value['steamid']]['avatar'] = $info['avatar'];
+			}
+
+			$scores[$value['steamid']]['name'] = $database[$value['steamid']]['name'];
+			$scores[$value['steamid']]['avatar'] = $database[$value['steamid']]['avatar'];
 		}
 	}
 
+	// IF THERE ARE PEOPLE IN THE GROUP NOT PRESENT, CHECK AGAIN?
 	return $scores;
 }
 
@@ -105,7 +130,8 @@ function get_youtube() {
 function post_leaderboard() {
 }
 
-function store_leaderboard($leaderboard) {
+function store_leaderboard($leaderboard, $leaderboard_id) {
+	global $db;
 }
 
 function print_leaderboard($leaderboard) {

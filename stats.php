@@ -34,11 +34,10 @@ echo "<p><strong>Favorite character</strong> (" . current($characters) . " times
 echo "<h2>Game history</h2>";
 rsort($games);
 foreach ($games as $game) {
-	echo "<h3>" . date("F j, Y",strtotime($game['date'])) . "</h3>\r";
+	echo "<h3><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></h3>\r";
 	echo "<p><img src=\"images/char_" . character_icon($game['character_used']) . ".png\" /><br />\r";
 	echo "<strong>Score</strong>: $" . number_format($game['score']) . "<br />\r";
 	echo "<strong>Died on</strong>: " . $game['level'] . "</p>\r";
-	echo "<p><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">Full leaderboard</a></p>\r";
 }
 ?>
 </body>

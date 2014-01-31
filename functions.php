@@ -44,6 +44,7 @@ function get_leaderboard_data($members, $leaderboard_id) {
 
 	foreach($array['entries']['entry'] as $key => $value) {
 		if (in_array($value['steamid'],$members)) {
+			if ($value['score'] == "0") continue; // if you're in the middle of a run it will return 0
 			$scores[$value['steamid']]['score'] = $value['score'];
 
 			// Characters are stored as hex values, converting to decimal

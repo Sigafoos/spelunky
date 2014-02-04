@@ -1,0 +1,94 @@
+/* reset! */
+html, body, div, span, applet, object, iframe,
+	h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+	a, abbr, acronym, address, big, cite, code,
+	del, dfn, em, font, img, ins, kbd, q, s, samp,
+	small, strike, strong, sub, sup, tt, var,
+	b, u, i, center,
+	dl, dt, dd, fieldset, form, label, legend,
+	table, caption, tbody, tfoot, thead, tr, th, td {
+margin: 0;
+padding: 0;
+border: 0;
+outline: 0;
+	 font-size: 100%;
+	 vertical-align: baseline;
+background: transparent;
+	}
+
+/* remember to define focus styles! */
+a:focus {
+outline: 1px dotted #000;
+  }
+
+abbr[title], dfn[title] {
+	border-bottom:1px dotted #000;
+cursor:help;
+}
+
+del {
+	text-decoration: line-through;
+}
+
+table {
+border: 1px solid #000;
+	background-color: inherit;
+color: #000;
+       margin-left: auto;
+       margin-right: auto;
+}
+
+td, th {
+	border-top: 1px solid #000;
+	border-right: 1px solid #888;
+	border-bottom: 1px solid #888;
+	border-left: 1px solid #000;
+padding: .25em;
+}
+
+/* html5 stuff */
+article, section, header, footer, nav {
+	        display: block;
+}
+
+/* on to the css */
+body {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+color: #000;
+       line-height: 1.5em;
+background:url('/images/minebg.jpg') repeat;
+margin:2em;
+       background-attachment:fixed;
+}
+
+h1 {
+	text-align: center;
+	font-size: 1.75em;
+color:#000;
+background:url('/images/menuheader.png') no-repeat;
+height:128px;
+width:512px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-top: 50px;
+}
+
+#wrapper {
+width: 47.5em;
+       margin-left: auto;
+       margin-right: auto;
+}
+
+header nav {
+	text-align: center;
+	background-color:#fffee2;
+	;
+}
+
+/* text classes */
+
+.center {
+	text-align:center;
+	margin-left: auto;
+	margin-right: auto;
+}

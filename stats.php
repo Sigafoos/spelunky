@@ -1,13 +1,7 @@
-<!doctype html>
-<html>
-<head>
-<title>Player stats for <?php echo $_GET['player']; ?></title
-</head>
-<body>
-<?php
+<?php 
 if (!$_GET['player']) header("Location:index.php");
-
-require('functions.php');
+$title = $_GET['player'];
+require('header.inc.php');
 
 $query = "SELECT date, spelunky_game_entry.leaderboard_id, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id WHERE lower(name)='" . addslashes(strtolower($_GET['player'])) . "' ORDER BY date ASC";
 $result = $db->query($query);
@@ -21,7 +15,7 @@ while ($row = $result->fetch_assoc()) {
 }
 arsort($characters);
 
-echo "<h1>Player stats for " . $_GET['player'] . "</h1>";
+echo "<div class=\"textbox\">\r";
 echo "<p><strong>Games played</strong>: " . count($games) . "<br />\r";
 echo "<strong>First game</strong>: " . date("F j, Y",strtotime($games[0]['date'])) . " ($" . number_format($games[0]['score']) . ")<br />\r";
 echo "<strong>Latest game</strong>: " . date("F j, Y",strtotime($games[count($games)-1]['date'])) . " ($" . number_format($games[count($games)-1]['score']) . ")</p>\r";
@@ -30,15 +24,27 @@ echo "<p><strong>Best score</strong>: $" . number_format($best['score']) . " (" 
 echo "<strong>Average score</strong>: $" . number_format(round(array_sum($scores) / count($scores))) . "</p>";
 
 echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";
+echo "</div>\r";
 
-echo "<h2>Game history</h2>";
+// echo "<h2>Game history</h2>"; // needs css
 rsort($games);
-foreach ($games as $game) {
-	echo "<h3><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></h3>\r";
-	echo "<p><img src=\"images/char_" . character_icon($game['character_used']) . ".png\" /><br />\r";
-	echo "<strong>Score</strong>: $" . number_format($game['score']) . "<br />\r";
-	echo "<strong>Died on</strong>: " . $game['level'] . "</p>\r";
-}
 ?>
-</body>
-</html>
+<table id="scoreboard">
+<tr>
+<th scope="col">Date</th>
+<th scope="col">Score</th>
+<th scope="col">Died on</th>
+<th scope="col">Character</th>
+</tr>
+<?php
+foreach ($games as $game) {
+	echo "<tr>\r";
+	echo "<td><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
+	echo "<td>$" . number_format($game['score']) . "</td>\r";
+	echo "<td>" . $game['level'] . "</td>\r";
+	echo "<td><img src=\"images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
+	echo "</tr>\r\r";
+}
+echo "</table>\r\r";
+require('footer.inc.php');
+?>

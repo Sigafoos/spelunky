@@ -95,6 +95,17 @@ border: 1px solid #000;
 	vertical-align: middle;
 }
 
+#scoreboard {
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+
+#scoreboard th {
+	font-weight: bold;
+padding: 1em;
+	 background-color: #aaa;
+}
+
 /* text classes */
 
 .center {

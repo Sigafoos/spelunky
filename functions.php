@@ -51,8 +51,7 @@ function get_leaderboard_data($members, $leaderboard_id) {
 			$scores[$value['steamid']]['character'] = hexdec(substr($value['details'], 0, 2));
 
 			// Levels ares stored as hex values from 0-19, so convert them into what's shown on the leaderboards in-game
-			$level = hexdec(substr($value['details'], 8, 2));
-			$scores[$value['steamid']]['level'] = ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));
+			$scores[$value['steamid']]['level'] = hexdec(substr($value['details'], 8, 2));
 
 			// do we know you?
 			if (!$database[$value['steamid']]) { // also deal with if it was last updated X days ago
@@ -122,7 +121,7 @@ function get_saved_leaderboard($leaderboard_id) {
 	while ($row = $result->fetch_assoc()) {
 		$leaderboard[$row['steamid']]['name'] = $row['name'];
 		$leaderboard[$row['steamid']]['score'] = $row['score'];
-		$leaderboard[$row['steamid']]['level'] = $row['level'];
+		$leaderboard[$row['steamid']]['level'] = level($row['level']);
 		$leaderboard[$row['steamid']]['character'] = $row['character_used'];
 	}
 
@@ -236,6 +235,10 @@ function print_leaderboard($leaderboard) {
 function update_leaderboard($leaderboard, $date = FALSE) {
 	if (!$date) $date = date('Y-m-d');
 	echo "This doesn't do anything yet";
+}
+
+function level($level) {
+	return ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));
 }
 
 // if I want to do something with the character used

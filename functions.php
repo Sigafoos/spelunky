@@ -210,14 +210,26 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 }
 
 function print_leaderboard($leaderboard) {
+	echo "<table id=\"scoreboard\">\r";
+	echo "<tr>\r";
+	echo "<th scope=\"col\">Rank</th>\r";
+	echo "<th scope=\"col\">Player</th>\r";
+	echo "<th scope=\"col\">Score</th>\r";
+	echo "<th scope=\"col\">Died on</th>\r";
+	echo "<th scope=\"col\">Character</th>\r";
+	echo "</tr>\r\r";
 	$i = 1;
 	foreach ($leaderboard as $entry) {
-		echo "<h2>" . $i . " <img src=\"images/char_" . character_icon($entry['character']) . ".png\" \>" . $entry['name'] . "</h2>\r";
-		echo "<p><strong>Score</strong>: $" . number_format($entry['score']) . "</p>";
-		echo "<p><strong>Died on</strong>: " . $entry['level'] . "</p>";
-		echo "<p><a href=\"stats.php?player=" . $entry['name'] . "\">Player stats</a></p>\r";
+		echo "<tr>\r";
+		echo "<td>" . $i . "</td>\r";
+		echo "<td><a href=\"stats.php?player=" . $entry['name'] . "\">" . $entry['name'] . "</a></td>\r";
+		echo "<td>$" . number_format($entry['score']) . "</td>";
+		echo "<td>" . $entry['level'] . "</td>";
+		echo "<td><img src=\"images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
+		echo "</tr>\r\r";
 		$i++;
 	}
+	echo "</table>\r\r";
 }
 
 // by default, get today's leaderboard on BGG, but you can specify a date

@@ -3,7 +3,7 @@ if (!$_GET['player']) header("Location:index.php");
 $title = $_GET['player'];
 require('header.inc.php');
 
-$query = "SELECT date, spelunky_game_entry.leaderboard_id, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id WHERE lower(name)='" . addslashes(strtolower($_GET['player'])) . "' ORDER BY date ASC";
+$query = "SELECT date, spelunky_game_entry.leaderboard_id, score, level, character_used, spelunky_game_entry.steamid FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id WHERE lower(name)='" . addslashes(strtolower($_GET['player'])) . "' ORDER BY date ASC";
 $result = $db->query($query);
 while ($row = $result->fetch_assoc()) {
 	if ($row['score'] === "0") continue; // let's not be mean
@@ -16,9 +16,8 @@ while ($row = $result->fetch_assoc()) {
 }
 
 // global bests to compare to
-$query = "SELECT leaderboard_id FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE lower(name)='" . addslashes(strtolower($_GET['player'])) . "' AND score=(SELECT max(score) FROM spelunky_game_entry)";
-$result = $db->query($query);
-$globalbest = $result->fetch_assoc();
+$global['score'] = get_best_score();
+$global['level'] = get_best_level();
 
 // get the most used character
 arsort($characters);
@@ -71,9 +70,10 @@ foreach ($games as $game) {
 	echo "<td>" . level($game['level']) . "</td>\r";
 	echo "<td><img src=\"/images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
 	echo "<td style=\"width:90px\">";
-	if ($game['leaderboard_id'] == $globalbest['leaderboard_id']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
+	if ($game['leaderboard_id'] == $global['score']['leaderboard_id'] && $game['steamid'] == $global['score']['steamid']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
+	if ($game['leaderboard_id'] == $global['level']['leaderboard_id'] && $game['steamid'] == $global['level']['steamid']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
 	if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
-	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal farthest level\" title=\"Personal farthest level\" />";
+	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
 	echo "</td>\r";
 	echo "</tr>\r\r";
 }

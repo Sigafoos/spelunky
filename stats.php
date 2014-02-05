@@ -16,15 +16,30 @@ while ($row = $result->fetch_assoc()) {
 }
 arsort($characters);
 
+// let's get some medians!
+sort($scores);
+$count = count($scores);
+$middle = floor(($count-1)/2);
+if ($count % 2) $median['score'] = $scores[$middle];
+else $median['score'] = round(($scores[$middle]+$scores[$middle+1])/2);
+
+sort($levels);
+$count = count($levels);
+$middle = floor(($count-1)/2);
+if ($count % 2) $median['level'] = $levels[$middle];
+else $median['level'] = round(($levels[$middle]+$levels[$middle+1])/2);
+
 echo "<div class=\"textbox\">\r";
 echo "<p><strong>Games played</strong>: " . count($games) . "<br />\r";
 echo "<strong>First game</strong>: " . date("F j, Y",strtotime($games[0]['date'])) . " ($" . number_format($games[0]['score']) . ")<br />\r";
 echo "<strong>Latest game</strong>: " . date("F j, Y",strtotime($games[count($games)-1]['date'])) . " ($" . number_format($games[count($games)-1]['score']) . ")</p>\r";
 
 echo "<p><strong>Best score</strong>: $" . number_format($best['score']) . " (" . date("F j, Y",strtotime($best['date'])) . ")<br />\r";
-echo "<strong>Average score</strong>: $" . number_format(round(array_sum($scores) / count($scores))) . "</p>";
+echo "<strong>Average score</strong>: $" . number_format(round(array_sum($scores) / count($scores))) . "<br />";
+echo "<strong>Median score</strong>: $" . number_format($median['score']) . "</p>";
 
-echo "<p><strong>Average level reached</strong>: " . level(round(array_sum($levels) / count($levels))) . "</p>\r";
+echo "<p><strong>Average level reached</strong>: " . level(round(array_sum($levels) / count($levels))) . "<br />\r";
+echo "<strong>Median level reached</strong>: " . level($median['level']) . "</p>";
 
 echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"/images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";
 echo "</div>\r";

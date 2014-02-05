@@ -224,7 +224,7 @@ function print_leaderboard($leaderboard) {
 		echo "<td><a href=\"stats.php?player=" . $entry['name'] . "\">" . $entry['name'] . "</a></td>\r";
 		echo "<td>$" . number_format($entry['score']) . "</td>";
 		echo "<td>" . $entry['level'] . "</td>";
-		echo "<td><img src=\"images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
+		echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
 		echo "</tr>\r\r";
 		$i++;
 	}

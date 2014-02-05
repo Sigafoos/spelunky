@@ -26,7 +26,7 @@ echo "<strong>Average score</strong>: $" . number_format(round(array_sum($scores
 
 echo "<p><strong>Average level reached</strong>: " . level(round(array_sum($levels) / count($levels))) . "</p>\r";
 
-echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";
+echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"/images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";
 echo "</div>\r";
 
 // echo "<h2>Game history</h2>"; // needs css
@@ -45,7 +45,7 @@ foreach ($games as $game) {
 	echo "<td><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
 	echo "<td>$" . number_format($game['score']) . "</td>\r";
 	echo "<td>" . level($game['level']) . "</td>\r";
-	echo "<td><img src=\"images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
+	echo "<td><img src=\"/images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
 	echo "</tr>\r\r";
 }
 echo "</table>\r\r";

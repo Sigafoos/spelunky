@@ -116,6 +116,9 @@ function get_leaderboard($date = FALSE) {
 function get_saved_leaderboard($leaderboard_id) {
 	global $db;
 
+	$best['score'] = get_best_score();
+	$best['level'] = get_best_level();
+
 	$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $leaderboard_id . " ORDER BY score DESC";
 	$result = $db->query($query);
 	while ($row = $result->fetch_assoc()) {
@@ -123,6 +126,15 @@ function get_saved_leaderboard($leaderboard_id) {
 		$leaderboard[$row['steamid']]['score'] = $row['score'];
 		$leaderboard[$row['steamid']]['level'] = level($row['level']);
 		$leaderboard[$row['steamid']]['character'] = $row['character_used'];
+
+		unset($personal);
+		$personal['score'] = get_best_score($row['steamid']);
+		$personal['level'] = get_best_level($row['steamid']);
+
+		if ($leaderboard_id == $best['score']['leaderboard_id'] && $row['steamid'] == $best['score']['steamid']) $leaderboard[$row['steamid']]['awards']['global_score'] = TRUE;
+		if ($leaderboard_id == $personal['score']['leaderboard_id']) $leaderboard[$row['steamid']]['awards']['personal_score'] = TRUE;
+		if ($leaderboard_id == $best['level']['leaderboard_id'] && $row['steamid'] == $best['level']['steamid']) $leaderboard[$row['steamid']]['awards']['global_level'] = TRUE;
+		if ($leaderboard_id == $personal['level']['leaderboard_id']) $leaderboard[$row['steamid']]['awards']['personal_level'] = TRUE;
 	}
 
 	return $leaderboard;
@@ -149,6 +161,28 @@ function get_player_info($steamid) {
 	$info['avatar'] = $array['avatarIcon'];
 
 	return $info;
+}
+
+function get_best_score($steamid = NULL) {
+	global $db;
+	// the ORDER BY is in case there's a tie; first come, first served
+	$query = "SELECT leaderboard_id, steamid, score FROM spelunky_game_entry WHERE score=(SELECT max(score) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE steamid=" . $steamid . ") AND steamid=" . $steamid;
+	else $query .= ")";
+	$query .= " ORDER BY leaderboard_id ASC";
+	$result = $db->query($query);
+	return $result->fetch_assoc();
+}
+
+function get_best_level($steamid = NULL) {
+	global $db;
+	// the ORDER BY is in case there's a tie; first come, first served
+	$query = "SELECT leaderboard_id, steamid, level FROM spelunky_game_entry WHERE level=(SELECT max(level) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE steamid=" . $steamid . ") AND steamid=" . $steamid;
+	else $query .= ")";
+	$query .= " ORDER BY leaderboard_id ASC";
+	$result = $db->query($query);
+	return $result->fetch_assoc();
 }
 
 // insert or update player data
@@ -220,6 +254,7 @@ function print_leaderboard($leaderboard) {
 	echo "<th scope=\"col\">Score</th>\r";
 	echo "<th scope=\"col\">Died on</th>\r";
 	echo "<th scope=\"col\">Character</th>\r";
+	echo "<th scope=\"col\">Awards</th>\r";
 	echo "</tr>\r\r";
 	$i = 1;
 	foreach ($leaderboard as $entry) {
@@ -229,6 +264,12 @@ function print_leaderboard($leaderboard) {
 		echo "<td>$" . number_format($entry['score']) . "</td>";
 		echo "<td>" . $entry['level'] . "</td>";
 		echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
+		echo "<td style=\"width:90px;\">";
+		if ($entry['awards']['global_score']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
+		if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+		if ($entry['awards']['global_level']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
+		if ($entry['awards']['personal_level']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
+		echo "</td>\r";
 		echo "</tr>\r\r";
 		$i++;
 	}

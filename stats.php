@@ -14,6 +14,13 @@ while ($row = $result->fetch_assoc()) {
 	$scores[] = $row['score'];
 	$levels[] = $row['level'];
 }
+
+// global bests to compare to
+$query = "SELECT leaderboard_id FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE lower(name)='" . addslashes(strtolower($_GET['player'])) . "' AND score=(SELECT max(score) FROM spelunky_game_entry)";
+$result = $db->query($query);
+$globalbest = $result->fetch_assoc();
+
+// get the most used character
 arsort($characters);
 
 // let's get some medians!
@@ -59,9 +66,10 @@ rsort($games);
 <?php
 foreach ($games as $game) {
 	echo "<tr>\r";
-	echo "<td>";
-	if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:23px;height:28px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
-	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:32px;height:27px\" alt=\"Personal farthest level\" title=\"Personal farthest level\" />";
+	echo "<td style=\"width:90px\">";
+	if ($game['leaderboard_id'] == $globalbest['leaderboard_id']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+	if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal farthest level\" title=\"Personal farthest level\" />";
 	echo "</td>\r";
 	echo "<td><a href=\"" . date("/Y/m/d/",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
 	echo "<td>$" . number_format($game['score']) . "</td>\r";

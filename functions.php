@@ -266,8 +266,8 @@ function print_leaderboard($leaderboard) {
 		echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
 		echo "<td style=\"width:90px;\">";
 		if ($entry['awards']['global_score']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
-		if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
 		if ($entry['awards']['global_level']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
+		if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
 		if ($entry['awards']['personal_level']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
 		echo "</td>\r";
 		echo "</tr>\r\r";

@@ -73,6 +73,10 @@ width:512px;
       padding-top: 50px;
 }
 
+p {
+margin: 1em;
+}
+
 #wrapper {
 width: 47.5em;
        margin-left: auto;

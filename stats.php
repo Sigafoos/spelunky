@@ -42,7 +42,7 @@ rsort($games);
 <?php
 foreach ($games as $game) {
 	echo "<tr>\r";
-	echo "<td><a href=\"/?date=" . date("Y-m-d",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
+	echo "<td><a href=\"" . date("/Y/m/d/",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
 	echo "<td>$" . number_format($game['score']) . "</td>\r";
 	echo "<td>" . level($game['level']) . "</td>\r";
 	echo "<td><img src=\"/images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";

@@ -10,7 +10,7 @@ while ($row = $result->fetch_assoc()) {
 	$games[] = $row;
 	$characters[$row['character_used']]++;
 	if (!$best || $best['score'] < $row['score']) $best = $row;
-	//if (!$farthest || $best['score'] < $row['score']) $best = $row;
+	if (!$farthest || $farthest['level'] < $row['level']) $farthest = $row;
 	$scores[] = $row['score'];
 	$levels[] = $row['level'];
 }
@@ -38,7 +38,8 @@ echo "<p><strong>Best score</strong>: $" . number_format($best['score']) . " (" 
 echo "<strong>Average score</strong>: $" . number_format(round(array_sum($scores) / count($scores))) . "<br />";
 echo "<strong>Median score</strong>: $" . number_format($median['score']) . "</p>";
 
-echo "<p><strong>Average level reached</strong>: " . level(round(array_sum($levels) / count($levels))) . "<br />\r";
+echo "<p><strong>Farthest level reached</strong>: " . level($farthest['level']) . " (" . date("F j, Y",strtotime($farthest['date'])) . ")<br />\r";
+echo "<strong>Average level reached</strong>: " . level(round(array_sum($levels) / count($levels))) . "<br />\r";
 echo "<strong>Median level reached</strong>: " . level($median['level']) . "</p>";
 
 echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"/images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";

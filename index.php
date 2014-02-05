@@ -10,7 +10,7 @@ echo "</nav>";
  
 // get the current leaderboard
 $leaderboard_id = get_leaderboard($_GET['date']);
-$leaderboard = get_saved_leaderboard($leaderboard_id);
+if ($leaderboard_id) $leaderboard = get_saved_leaderboard($leaderboard_id);
 print_leaderboard($leaderboard);
 
 require('footer.inc.php');

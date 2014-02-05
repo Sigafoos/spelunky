@@ -209,6 +209,10 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 }
 
 function print_leaderboard($leaderboard) {
+	if (!count($leaderboard)) {
+		echo "<p class=\"textbox\">There are no entries for this date</p>\r";
+		return false;
+	}  
 	echo "<table id=\"scoreboard\">\r";
 	echo "<tr>\r";
 	echo "<th scope=\"col\">Rank</th>\r";

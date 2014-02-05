@@ -50,6 +50,7 @@ rsort($games);
 ?>
 <table id="scoreboard">
 <tr>
+<th scope="col">Awards</th>
 <th scope="col">Date</th>
 <th scope="col">Score</th>
 <th scope="col">Died on</th>
@@ -58,6 +59,10 @@ rsort($games);
 <?php
 foreach ($games as $game) {
 	echo "<tr>\r";
+	echo "<td>";
+	if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:23px;height:28px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:32px;height:27px\" alt=\"Personal farthest level\" title=\"Personal farthest level\" />";
+	echo "</td>\r";
 	echo "<td><a href=\"" . date("/Y/m/d/",strtotime($game['date'])) . "\">" . date("F j, Y",strtotime($game['date'])) . "</a></td>\r";
 	echo "<td>$" . number_format($game['score']) . "</td>\r";
 	echo "<td>" . level($game['level']) . "</td>\r";

@@ -72,7 +72,7 @@ foreach ($games as $game) {
 	echo "<td><img src=\"/images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
 	echo "<td style=\"width:90px\">";
 	if ($game['leaderboard_id'] == $globalbest['leaderboard_id']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
-	else if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+	if ($game['leaderboard_id'] == $best['leaderboard_id']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
 	if ($game['leaderboard_id'] == $farthest['leaderboard_id']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal farthest level\" title=\"Personal farthest level\" />";
 	echo "</td>\r";
 	echo "</tr>\r\r";

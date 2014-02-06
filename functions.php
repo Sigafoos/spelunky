@@ -375,7 +375,7 @@ function new_geeklist() {
 function update_geeklist_entry($item) {
 }
 
-function create_geeklist_entry($leaderboard,$geeklist_id) {
+function new_geeklist_entry($leaderboard,$geeklist_id) {
 	global $db, $bgg;
 
 	$ch = curl_init("http://videogamegeek.com/geeklist/item/save");

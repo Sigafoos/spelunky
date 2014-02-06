@@ -272,12 +272,6 @@ function print_leaderboard($leaderboard) {
 	echo "</table>\r\r";
 }
 
-// by default, get today's leaderboard on BGG, but you can specify a date
-function update_leaderboard($leaderboard, $date = FALSE) {
-	if (!$date) $date = date('Y-m-d');
-	echo "This doesn't do anything yet";
-}
-
 function level($level) {
 	return ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));
 }
@@ -378,6 +372,42 @@ function new_geeklist() {
 	return $geeklist_id;
 }
 
+function update_geeklist_entry($item) {
+}
+
+function create_geeklist_entry($leaderboard,$geeklist_id) {
+	global $db, $bgg;
+
+	$ch = curl_init("http://videogamegeek.com/geeklist/item/save");
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	//curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_POST, TRUE);
+
+	$data = array(
+			"action"		=>	"save",
+			"listid"		=>	$geeklist_id,
+			"itemid"		=>	"0",
+			"objectid"		=>	"73701", // Spelunky
+			"geekitemname"		=>	"Spelunky",
+			"objecttype"		=>	"thing",
+			"imageid"		=>	"1850139", // the HD image
+			"geek_link_select_1"	=>	NULL,
+			"sizesel"		=>	"10",
+			"comments"		=>	format_leaderboard($leaderboard),
+			"B1"			=>	"Save"
+		     );
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
+
+	preg_match("/geeklist\/([0-9]+)/",$info['redirect_url'],$matches);
+	return $info['redirect_url'];
+	//return $matches[1];
+}
+
 // expects date("Y-m")
 function get_geeklist($month) {
 	global $db;
@@ -473,7 +503,27 @@ function extractCookies($string) {
 	return $cookies;
 }
 
-function post_leaderboard() {
+function update_leaderboard($leaderboard) {
+	// check for geeklist item
+	// if no item, check for this month's geeklist
+	// if no, create geeklist
+}
+
+function format_leaderboard($leaderboard, $date = NULL) {
+	if (!$date) $date = date("F j");
+	$return = "[size=16][b]" . $date . "[/b][/size][clear]\r\r";
+
+	$i = 1;
+	foreach ($leaderboard as $entry) {
+		$return .= "[floatleft]" . $i . "[/floatleft]";
+		$return .= "[floatleft]" . $entry['name'] . "[/floatleft]";
+		$return .= "[floatleft]$" . number_format($entry['score']) . "[/floatleft]";
+		$return .= "[floatleft]" . $entry['level'] . "[/floatleft]";
+		$return .= "[floatleft][img]http://spelunky.danconley.net/images/char_" . character_icon($entry['character']) . ".png[/img][/floatleft]";
+		$return .= "[clear]\r";
+		$i++;
+	}
+	return $return;
 }
 
 ?>

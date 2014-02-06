@@ -403,9 +403,8 @@ function new_geeklist_entry($leaderboard,$geeklist_id) {
 	$info = curl_getinfo($ch);
 	curl_close($ch);
 
-	preg_match("/geeklist\/([0-9]+)/",$info['redirect_url'],$matches);
-	return $info['redirect_url'];
-	//return $matches[1];
+	preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
+	return $matches[1];
 }
 
 // expects date("Y-m")

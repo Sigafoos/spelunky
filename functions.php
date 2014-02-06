@@ -113,6 +113,7 @@ function get_leaderboard($date = FALSE) {
 	return $leaderboard;
 }
 
+// ZZZ VVV ADD: return array($leaderboard_info, $leaderboard_data)
 function get_saved_leaderboard($leaderboard_id) {
 	global $db;
 
@@ -372,10 +373,7 @@ function new_geeklist() {
 	return $geeklist_id;
 }
 
-function update_geeklist_entry($item) {
-}
-
-function new_geeklist_entry($leaderboard,$geeklist_id) {
+function geeklist_entry($leaderboard,$geeklist_id, $item_id = 0) {
 	global $db, $bgg;
 
 	$ch = curl_init("http://videogamegeek.com/geeklist/item/save");
@@ -387,7 +385,7 @@ function new_geeklist_entry($leaderboard,$geeklist_id) {
 	$data = array(
 			"action"		=>	"save",
 			"listid"		=>	$geeklist_id,
-			"itemid"		=>	"0",
+			"itemid"		=>	$item_id,
 			"objectid"		=>	"73701", // Spelunky
 			"geekitemname"		=>	"Spelunky",
 			"objecttype"		=>	"thing",

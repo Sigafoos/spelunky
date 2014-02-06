@@ -2,8 +2,8 @@
 // pretty much everything useful here was stolen from the KlepekVsRemo repository:
 // https://github.com/amarriner/KlepekVsRemo/
 
-// you don't get my db info!
-require('/var/www/db_connect.php');
+require('config.inc.php');
+$db = new mysqli($dbinfo['server'],$dbinfo['username'],$dbinfo['password'],$dbinfo['database']);
 
 // Checks to see if the player's data has already been tweeted
 // this is not at all necessary
@@ -199,10 +199,6 @@ function update_player($player, $new = TRUE) {
 function get_youtube() {
 }
 
-// I'll have to do work on this, so, uh, it doesn't exist
-function post_leaderboard() {
-}
-
 function save_leaderboard($leaderboard, $leaderboard_id) {
 	global $db;
 	$changed = FALSE;
@@ -322,4 +318,15 @@ function array_remove($needle, $haystack) {
 
 	return $tmp;
 }
+
+
+/***** BGG FUNCTIONS *****/
+// I'll have to do work on this, so, uh, it doesn't exist
+function login($info) {
+
+}
+
+function post_leaderboard() {
+}
+
 ?>

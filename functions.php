@@ -321,8 +321,9 @@ function array_remove($needle, $haystack) {
 
 
 /***** BGG FUNCTIONS *****/
+// create a new geeklist, submit it, enter the geeklist_id in the database, return the geeklsit_id
 function new_geeklist() {
-	global $bgg;
+	global $db, $bgg;
 
 	$ch = curl_init("http://videogamegeek.com/geeklist/save");
 	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
@@ -337,8 +338,8 @@ function new_geeklist() {
 			"action"		=>	"savelist",
 			"geek_link_select_1"	=>	NULL,
 			"sizesel"		=>	"10",
-			"title"			=>	"Spelunking Werewolves: ",// . date("F Y") . " edition!",
-			"description"		=>	"test",//$description,
+			"title"			=>	"Spelunking Werewolves: " . date("F Y") . " edition!",
+			"description"		=>	$description,
 			"subscribe"		=>	"1",
 			"domains[videogame]"	=>	"1",
 			"allowcomments"		=>	"1",
@@ -354,11 +355,14 @@ function new_geeklist() {
 
 	preg_match("/([0-9]+)/",$info['redirect_url'],$matches);
 	$geeklist_id = $matches[1];
-	echo "GLID: " . $geeklist_id;
+
+	if (!$geeklist_id) {
+		echo "FATAL ERROR: No geeklist id";
+		return FALSE;
+	}
 
 	// we entered the geeklist, now we need to submit it
-	/*
-	$ch = curl_init($info['redirect_url']);
+	$ch = curl_init("http://videogamegeek.com/geeklist/submit/" . $geeklist_id);
 	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
 	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
@@ -367,8 +371,22 @@ function new_geeklist() {
 	$info = curl_getinfo($ch);
 	curl_close($ch);
 
-	print_r($info);
-	*/
+	// if you want to geekmail everyone, do it here
+	$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . date("Y") . "-" . date("m") . "-01', " . $geeklist_id . ")";
+	$db->query($query);
+
+	return $geeklist_id;
+}
+
+// expects date("Y-m")
+function get_geeklist($month) {
+	global $db;
+
+	$query = "SELECT geeklist_id FROM spelunky_geeklists WHERE date='" . $month . "-01'";
+	$result = $db->query($query);
+	$row = $result->fetch_assoc();
+
+	return $row['geeklist_id'];
 }
 
 function login() {

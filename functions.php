@@ -322,8 +322,88 @@ function array_remove($needle, $haystack) {
 
 /***** BGG FUNCTIONS *****/
 // I'll have to do work on this, so, uh, it doesn't exist
-function login($info) {
+function login() {
+	global $bgg;
+	if (!$bgg['username'] || !$bgg['password'] || !$bgg['cookiejar']) return FALSE; // you haven't set options, so no BGG stuff
 
+	$ch = curl_init("http://videogamegeek.com/login");
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	// I have no idea how this will handle special characters
+	curl_setopt($ch, CURLOPT_COOKIE, "username=" . $bgg['username'] . "; password=" . $bgg['password']);
+	// we're only calling this if we need new cookies
+	curl_setopt($ch, CURLOPT_COOKIESESSION, TRUE);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
+}
+
+function is_logged_in() {
+	global $bgg;
+	if (!$bgg['cookiejar']) return FALSE;
+	$logged_in = FALSE;
+	$cookies = extractCookies(@file_get_contents($bgg['cookiejar']));
+	if (!$cookies) return FALSE;
+
+	foreach ($cookies as $cookie) {
+		if ($cookie['domain'] == "videogamegeek.com") {
+			$logged_in = TRUE;
+			break;
+		}
+	}
+	return $logged_in;
+}
+
+/**
+ * Extract any cookies found from the cookie file. This function expects to get
+ * a string containing the contents of the cookie file which it will then
+ * attempt to extract and return any cookies found within.
+ *
+ * @param string $string The contents of the cookie file.
+ * 
+ * @return array The array of cookies as extracted from the string.
+ *
+ * From http://www.hashbangcode.com/blog/netscape-http-cooke-file-parser-php-584.html
+ */
+function extractCookies($string) {
+	$cookies = array();
+
+	$lines = explode("\n", $string);
+
+	// iterate over lines
+	foreach ($lines as $line) {
+
+		// we only care for valid cookie def lines
+		if (isset($line[0]) && substr_count($line, "\t") == 6) {
+
+			// get tokens in an array
+			$tokens = explode("\t", $line);
+
+			// trim the tokens
+			$tokens = array_map('trim', $tokens);
+
+			$cookie = array();
+
+			// Extract the data
+			$cookie['domain'] = $tokens[0];
+			$cookie['flag'] = $tokens[1];
+			$cookie['path'] = $tokens[2];
+			$cookie['secure'] = $tokens[3];
+
+			// Convert date to a readable format
+			$cookie['expiration'] = date('Y-m-d h:i:s', $tokens[4]);
+
+			$cookie['name'] = $tokens[5];
+			$cookie['value'] = $tokens[6];
+
+			// Record the cookie.
+			$cookies[] = $cookie;
+		}
+	}
+
+	return $cookies;
 }
 
 function post_leaderboard() {

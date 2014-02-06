@@ -321,7 +321,56 @@ function array_remove($needle, $haystack) {
 
 
 /***** BGG FUNCTIONS *****/
-// I'll have to do work on this, so, uh, it doesn't exist
+function new_geeklist() {
+	global $bgg;
+
+	$ch = curl_init("http://videogamegeek.com/geeklist/save");
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	//curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_POST, TRUE);
+
+	// the meat of it
+	$description = "The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\r\rIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.";
+	$data = array(
+			"listid"		=>	NULL,
+			"action"		=>	"savelist",
+			"geek_link_select_1"	=>	NULL,
+			"sizesel"		=>	"10",
+			"title"			=>	"Spelunking Werewolves: ",// . date("F Y") . " edition!",
+			"description"		=>	"test",//$description,
+			"subscribe"		=>	"1",
+			"domains[videogame]"	=>	"1",
+			"allowcomments"		=>	"1",
+			"specialsort"		=>	"none",
+			"B1"			=>	"Save %26 Continue To Step 2"
+		     );
+
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
+
+	preg_match("/([0-9]+)/",$info['redirect_url'],$matches);
+	$geeklist_id = $matches[1];
+	echo "GLID: " . $geeklist_id;
+
+	// we entered the geeklist, now we need to submit it
+	/*
+	$ch = curl_init($info['redirect_url']);
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
+
+	print_r($info);
+	*/
+}
+
 function login() {
 	global $bgg;
 	if (!$bgg['username'] || !$bgg['password'] || !$bgg['cookiejar']) return FALSE; // you haven't set options, so no BGG stuff
@@ -329,11 +378,11 @@ function login() {
 	$ch = curl_init("http://videogamegeek.com/login");
 	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
 	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	// I have no idea how this will handle special characters
-	curl_setopt($ch, CURLOPT_COOKIE, "username=" . $bgg['username'] . "; password=" . $bgg['password']);
+	curl_setopt($ch, CURLOPT_POST, TRUE);
 	// we're only calling this if we need new cookies
-	curl_setopt($ch, CURLOPT_COOKIESESSION, TRUE);
+	//curl_setopt($ch, CURLOPT_COOKIESESSION, TRUE);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_POSTFIELDS, array("username" => $bgg['username'], "password"=> $bgg['password']));
 
 	$output = curl_exec($ch);
 	$info = curl_getinfo($ch);

@@ -20,12 +20,12 @@ function check_today($player) {
 
 // Retrieves the players' leaderboard data for today
 function get_leaderboard_data($members, $leaderboard_id) {
-	global $db;
+	global $db, $steam;
 	$score = -1;
 	$scores = array();
 
 	// using my id, then grabbing the scores for anyone in the group
-	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard_id . '/?xml=1&steamid=76561198000338942';
+	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard_id . '/?xml=1&steamid=' . $steam['steamid64'];
 	$xml = file_get_contents($player_spelunky_leaderboard);
 	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 	$json = json_encode($ob);

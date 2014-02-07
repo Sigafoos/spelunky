@@ -2,7 +2,7 @@
 require('functions.php');
 
 // get the BGGWW members
-$members = get_group_members("103582791432200102");
+$members = get_group_members($steam['group']);
 
 // get the current leaderboard
 // if it's after 9 EST, stop

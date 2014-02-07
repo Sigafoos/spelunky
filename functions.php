@@ -511,7 +511,10 @@ function update_leaderboard($leaderboard, $leaderboard_id) {
 }
 
 function format_leaderboard($leaderboard, $date = NULL) {
-	if (!$date) $date = date("F j");
+	if (!$date) {
+		if (date("G") < 19) $date = date("F j");
+		else $date = date("F j",strtotime("tomorrow"));
+	}
 	$return = "[size=16][b]" . $date . "[/b][/size][clear]\r\r";
 
 	$i = 1;

@@ -220,18 +220,32 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 		$changed = TRUE;
 		$comment = "";
 
+		$best['score'] = get_best_score();
+		$best['level'] = get_best_level();
+
 		foreach($leaderboard as $steamid=>$entry) {
 			$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
 			$db->query($query);
 
-			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
+			// you did it
+			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n\n";
+
+			// did you beat your own best?
+			unset($personal);
+			$personal['score'] = get_best_score($row['steamid']);
+			$personal['level'] = get_best_level($row['steamid']);
+			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
+			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
+
+			// did you beat everyone else ever omg?
+			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
+			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
 		}
 
-		//$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
-		//geeklist_comment($comment, $glid); // alert people of new scores
+		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
+		geeklist_comment($comment, $glid); // alert people of new scores
 		echo count($leaderboard) . " new entries imported";
 	}
-
 
 	return $changed;
 }
@@ -526,11 +540,11 @@ function extractCookies($string) {
 function update_leaderboard($leaderboard, $leaderboard_id) {
 	global $db;
 
-	$query = "SELECT geeklist_id FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
+	$query = "SELECT geeklist FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
 	$result = $db->query($query);
 	if ($result) {
 		$row = $result->fetch_assoc();
-		$geeklist_item = $row['geeklist_id']; // if it's null, we'll auto-create one later
+		$geeklist_item = $row['geeklist']; // if it's null, we'll auto-create one later
 	} else {
 		$geeklist_item = NULL;
 	}
@@ -553,18 +567,27 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		if (date("G") < 19) $date = date("F j");
 		else $date = date("F j",strtotime("tomorrow"));
 	}
-	$return = "[size=16][b]" . $date . "[/b][/size][clear]\n\n";
+	$return = "[size=16][b]" . $date . "[/b][/size]\n\n";
 
+	// let's make this look all pretty-like
 	$i = 1;
+	$line = "---------------------------------------------------\n";
+	$return .= "[c]" . $line;
+	$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
 	foreach ($leaderboard as $entry) {
-		$return .= "[floatleft]" . $i . "[/floatleft]";
-		$return .= "[floatleft]" . $entry['name'] . "[/floatleft]";
-		$return .= "[floatleft]$" . number_format($entry['score']) . "[/floatleft]";
-		$return .= "[floatleft]" . level($entry['level']) . "[/floatleft]";
-		$return .= "[floatleft][img]http://spelunky.danconley.net/images/char_" . character_icon($entry['character']) . ".png[/img][/floatleft]";
-		$return .= "[clear]\n";
+		$return .= "| " . $i;
+		if ($i < 10) $return .= " ";
+		$return .= "   | ";
+		$return .= $entry['name'];
+		for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
+		$score = number_format($entry['score']);
+		$return .= "| ";
+		for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
+		$return .= "$" . $score . " ";
+		$return .= "| " . level($entry['level']) . "  |\n" . $line;
 		$i++;
 	}
+	$return .= "\nUpdated " . date("g:i a") . "[/c]";
 	return $return;
 }
 

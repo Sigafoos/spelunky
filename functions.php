@@ -227,8 +227,8 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
 		}
 
-		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
-		geeklist_comment($comment, $glid); // alert people of new scores
+		//$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
+		//geeklist_comment($comment, $glid); // alert people of new scores
 		echo count($leaderboard) . " new entries imported";
 	}
 

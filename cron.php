@@ -6,7 +6,7 @@ $members = get_group_members($steam['group']);
 
 // get the current leaderboard
 // if it's after 9 EST, stop
-if (date("G") < 20) {
+if (date("G") < 21) {
 	$leaderboard_id = get_leaderboard();
 	$leaderboard = get_leaderboard_data($members,$leaderboard_id);
 	save_leaderboard($leaderboard, $leaderboard_id);

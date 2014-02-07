@@ -113,7 +113,6 @@ function get_leaderboard($date = FALSE) {
 	return $leaderboard;
 }
 
-// ZZZ VVV ADD: return array($leaderboard_info, $leaderboard_data)
 function get_saved_leaderboard($leaderboard_id) {
 	global $db;
 
@@ -203,6 +202,7 @@ function get_youtube() {
 function save_leaderboard($leaderboard, $leaderboard_id) {
 	global $db;
 	$changed = FALSE;
+	$original_leaderboard = $leaderboard;
 
 	$query = "SELECT steamid FROM spelunky_game_entry WHERE leaderboard_id=" . $leaderboard_id;
 	$result = $db->query($query);
@@ -226,15 +226,7 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 	}
 
 	// if we have new data, have we posted the geeklist yet?
-	/*
-	if ($changed) {
-		$query = "SELECT geeklist FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
-		$result = $db->query($query);
-		$row = $result->fetch_assoc();
-		if (!$row['geeklist']) {
-		}
-	}
-	*/
+	if ($changed) update_leaderboard($original_leaderboard,$leaderboard_id);
 
 	return $changed;
 }
@@ -323,7 +315,7 @@ function new_geeklist() {
 	$ch = curl_init("http://videogamegeek.com/geeklist/save");
 	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
 	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	//curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
 	curl_setopt($ch, CURLOPT_POST, TRUE);
 
 	// the meat of it
@@ -379,7 +371,7 @@ function geeklist_entry($leaderboard,$geeklist_id, $item_id = 0) {
 	$ch = curl_init("http://videogamegeek.com/geeklist/item/save");
 	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
 	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	//curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
 	curl_setopt($ch, CURLOPT_POST, TRUE);
 
 	$data = array(
@@ -500,10 +492,22 @@ function extractCookies($string) {
 	return $cookies;
 }
 
-function update_leaderboard($leaderboard) {
-	// check for geeklist item
-	// if no item, check for this month's geeklist
-	// if no, create geeklist
+function update_leaderboard($leaderboard, $leaderboard_id) {
+	global $db;
+
+	$query = "SELECT geeklist_id FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
+	$result = $db->query($query);
+	if ($result) {
+		$row = $result->fetch_assoc();
+		$geeklist_item = $row['geeklist_id']; // if it's null, we'll auto-create one later
+	} else {
+		$geeklist_item = NULL;
+	}
+
+	$geeklist_id = get_geeklist(date("Y-m"));
+	if (!$geeklist_id) $geeklist_id = new_geeklist();
+
+	$glid = geeklist_entry($leaderboard,$geeklist_id,$geeklist_item);
 }
 
 function format_leaderboard($leaderboard, $date = NULL) {

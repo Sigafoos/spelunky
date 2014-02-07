@@ -228,24 +228,23 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 			$db->query($query);
 
 			// you did it
-			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
+			//$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
 
 			// did you beat your own best?
 			unset($personal);
 			$personal['score'] = get_best_score($row['steamid']);
 			$personal['level'] = get_best_level($row['steamid']);
-			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n";
-			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n";
+			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
+			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
 
 			// did you beat everyone else ever omg?
-			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n";
-			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n";
-			$comment .= "\n";
+			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
+			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
 		}
 
 		if (!is_logged_in()) login();
 		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
-		geeklist_comment($comment, $glid); // alert people of new scores
+		if ($comment) geeklist_comment($comment, $glid); // alert people of new scores
 		echo count($leaderboard) . " new entries imported";
 	}
 
@@ -593,7 +592,7 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		$return .= "| " . level($entry['level']) . "  |\n" . $line;
 		$i++;
 	}
-	$return .= "[url=" . $siteurl . "/" . date("Y-m-d",strtotime($date)) . "/]Full leaderboard[/url]\n\n";
+	$return .= "[url=" . $siteurl . "/" . date("Y/m/d",strtotime($date)) . "/]Full leaderboard[/url]\n\n";
 	$return .= "Updated " . date("g:i a") . "[/c]";
 	return $return;
 }

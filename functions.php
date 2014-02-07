@@ -218,15 +218,20 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 	// is there anything that hasn't been inserted yet?
 	if (count($leaderboard) > 0) {
 		$changed = TRUE;
+		$comment = "";
 
 		foreach($leaderboard as $steamid=>$entry) {
 			$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
 			$db->query($query);
+
+			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
 		}
+
+		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
+		geeklist_comment($comment, $glid); // alert people of new scores
+		echo count($leaderboard) . " new entries imported";
 	}
 
-	// if we have new data, have we posted the geeklist yet?
-	if ($changed) update_leaderboard($original_leaderboard,$leaderboard_id);
 
 	return $changed;
 }
@@ -319,7 +324,7 @@ function new_geeklist() {
 	curl_setopt($ch, CURLOPT_POST, TRUE);
 
 	// the meat of it
-	$description = "The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\r\rIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.";
+	$description = "The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\n\nIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.";
 	$data = array(
 			"listid"		=>	NULL,
 			"action"		=>	"savelist",
@@ -395,6 +400,32 @@ function geeklist_entry($leaderboard,$geeklist_id, $item_id = 0) {
 
 	preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
 	return $matches[1];
+}
+
+function geeklist_comment($comment, $item_id) {
+	global $bgg;
+
+	$ch = curl_init("http://videogamegeek.com/geekcomment.php");
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_POST, TRUE);
+
+	$data = array(
+			"action"		=>	"save",
+			"objectid"		=>	$item_id,
+			"objecttype"		=>	"listitem",
+			"geek_link_select_1"	=>	NULL,
+			"sizesel"		=>	"10",
+			"body"			=>	$comment,
+			"ajax"			=>	"1", // but is it?
+			"B1"			=>	"Save"
+		     );
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
 }
 
 // expects date("Y-m")
@@ -508,6 +539,13 @@ function update_leaderboard($leaderboard, $leaderboard_id) {
 	if (!$geeklist_id) $geeklist_id = new_geeklist();
 
 	$glid = geeklist_entry($leaderboard,$geeklist_id,$geeklist_item);
+
+	if ($geeklist_item != $glid) {
+		$query = "UPDATE spelunky_games SET geeklist=" . $glid . " WHERE leaderboard_id=" . $leaderboard_id;
+		$db->query($query);
+	}
+
+	return $glid;
 }
 
 function format_leaderboard($leaderboard, $date = NULL) {
@@ -515,16 +553,16 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		if (date("G") < 19) $date = date("F j");
 		else $date = date("F j",strtotime("tomorrow"));
 	}
-	$return = "[size=16][b]" . $date . "[/b][/size][clear]\r\r";
+	$return = "[size=16][b]" . $date . "[/b][/size][clear]\n\n";
 
 	$i = 1;
 	foreach ($leaderboard as $entry) {
 		$return .= "[floatleft]" . $i . "[/floatleft]";
 		$return .= "[floatleft]" . $entry['name'] . "[/floatleft]";
 		$return .= "[floatleft]$" . number_format($entry['score']) . "[/floatleft]";
-		$return .= "[floatleft]" . $entry['level'] . "[/floatleft]";
+		$return .= "[floatleft]" . level($entry['level']) . "[/floatleft]";
 		$return .= "[floatleft][img]http://spelunky.danconley.net/images/char_" . character_icon($entry['character']) . ".png[/img][/floatleft]";
-		$return .= "[clear]\r";
+		$return .= "[clear]\n";
 		$i++;
 	}
 	return $return;

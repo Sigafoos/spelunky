@@ -228,20 +228,22 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 			$db->query($query);
 
 			// you did it
-			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n\n";
+			$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
 
 			// did you beat your own best?
 			unset($personal);
 			$personal['score'] = get_best_score($row['steamid']);
 			$personal['level'] = get_best_level($row['steamid']);
-			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
-			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
+			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n";
+			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n";
 
 			// did you beat everyone else ever omg?
-			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
-			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
+			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n";
+			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n";
+			$comment .= "\n";
 		}
 
+		if (!is_logged_in()) login();
 		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
 		geeklist_comment($comment, $glid); // alert people of new scores
 		echo count($leaderboard) . " new entries imported";
@@ -413,7 +415,9 @@ function geeklist_entry($leaderboard,$geeklist_id, $item_id = 0) {
 	curl_close($ch);
 
 	preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
-	return $matches[1];
+	$glid = $matches[1];
+	if (!$glid) echo "*** Error with url " . $info['redirect_url'] . " in geeklist_entry(\$leaderboard," . $geeklist_id . "," . $item_id;
+	return $glid;
 }
 
 function geeklist_comment($comment, $item_id) {
@@ -479,7 +483,7 @@ function is_logged_in() {
 	if (!$cookies) return FALSE;
 
 	foreach ($cookies as $cookie) {
-		if ($cookie['domain'] == "videogamegeek.com") {
+		if ($cookie['domain'] == ".videogamegeek.com") {
 			$logged_in = TRUE;
 			break;
 		}
@@ -563,6 +567,8 @@ function update_leaderboard($leaderboard, $leaderboard_id) {
 }
 
 function format_leaderboard($leaderboard, $date = NULL) {
+	global $siteurl;
+
 	if (!$date) {
 		if (date("G") < 19) $date = date("F j");
 		else $date = date("F j",strtotime("tomorrow"));
@@ -587,7 +593,8 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		$return .= "| " . level($entry['level']) . "  |\n" . $line;
 		$i++;
 	}
-	$return .= "\nUpdated " . date("g:i a") . "[/c]";
+	$return .= "[url=" . $siteurl . "/" . date("Y-m-d",strtotime($date)) . "]Full leaderboard[/url]\n\n";
+	$return .= "Updated " . date("g:i a") . "[/c]";
 	return $return;
 }
 

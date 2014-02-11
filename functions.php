@@ -5,150 +5,225 @@
 require('config.inc.php');
 $db = new mysqli($dbinfo['server'],$dbinfo['username'],$dbinfo['password'],$dbinfo['database']);
 
-// Checks to see if the player's data has already been tweeted
-// this is not at all necessary
-function check_today($player) {
-	$found = 1;
+class Leaderboard {
+	private $date; // actually a timestamp
+	private $leaderboard_id;
+	private $leaderboard;
+	private $members;
 
-	$last = trim(file_get_contents(_PWD . '/' . $player->steamid));
-	if ($last != date('m/d/Y')) {
-		$found = 0;
+	private $stored = FALSE; // is it in the database already?
+
+	// will grab the timestamp for the date provided (default today)
+	// and check if it's been stored
+	// if it has, grab the stored leaderboard
+	function __construct($date = NULL) {
+		global $db;
+
+		// $this->date
+		if (!$date) $this->date = time();
+		else $this->date = strtotime($date);
+
+		// $this->leaderboard_id
+		// if it's not in the db, don't sweat it; we'll grab it during update()
+		$query = "SELECT leaderboard_id FROM spelunky_games WHERE date='" . $this->get_date() . "'";
+		$result = $db->query($query);
+		if ($row = $result->fetch_assoc()) {
+			$this->stored = TRUE;
+
+			$this->leaderboard_id = $row['leaderboard_id'];
+
+			// $this->leaderboard (don't bother checking if we don't have a lbid)
+			$best['score'] = get_best_score();
+			$best['level'] = get_best_level();
+
+			$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $this->leaderboard_id . " ORDER BY score DESC, level DESC, name ASC";
+			$result = $db->query($query);
+			while ($row = $result->fetch_assoc()) {
+				$this->leaderboard[$row['steamid']]['name'] = $row['name'];
+				$this->leaderboard[$row['steamid']]['score'] = $row['score'];
+				$this->leaderboard[$row['steamid']]['level'] = level($row['level']);
+				$this->leaderboard[$row['steamid']]['character'] = $row['character_used'];
+
+				unset($personal);
+				$personal['score'] = get_best_score($row['steamid']);
+				$personal['level'] = get_best_level($row['steamid']);
+
+				if ($this->leaderboard_id == $best['score']['leaderboard_id'] && $row['steamid'] == $best['score']['steamid']) $this->leaderboard[$row['steamid']]['awards']['global_score'] = TRUE;
+				if ($this->leaderboard_id == $personal['score']['leaderboard_id']) $this->leaderboard[$row['steamid']]['awards']['personal_score'] = TRUE;
+				if ($this->leaderboard_id == $best['level']['leaderboard_id'] && $row['steamid'] == $best['level']['steamid']) $this->leaderboard[$row['steamid']]['awards']['global_level'] = TRUE;
+				if ($this->leaderboard_id == $personal['level']['leaderboard_id']) $this->leaderboard[$row['steamid']]['awards']['personal_level'] = TRUE;
+			}
+		}
 	}
 
-	return $found;
-}
+	// PUBLIC FUNCTIONS
+	// check if there are updates, and if so notify BGG
+	public function update() {
+		$new = $this->refresh();
+		array_pop($this->leaderboard); // TAKE THIS OUT AFTER DEBUGGING!
+		array_pop($this->leaderboard); // TAKE THIS OUT AFTER DEBUGGING!
 
-// Retrieves the players' leaderboard data for today
-function get_leaderboard_data($members, $leaderboard_id) {
-	global $db, $steam;
-	$score = -1;
-	$scores = array();
+		foreach ($new as $steamid=>$data) if (!@$this->leaderboard[$steamid]) $changes[$steamid] = $data;
 
-	// using my id, then grabbing the scores for anyone in the group
-	$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $leaderboard_id . '/?xml=1&steamid=' . $steam['steamid64'];
-	$xml = file_get_contents($player_spelunky_leaderboard);
-	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
-	$json = json_encode($ob);
-	$array = json_decode($json, true);
+		// new stuff!
+		if ($changes) {
+			// insert into db
+			// check for geeklist
+			// update BGG
+			// comment
 
-	if (!$array['entries']) return NULL;
+			// update the leaderboard
+			// WILL NOT BE PROPERLY ORDERED
+			$this->leaderboard = array_merge($changes,$this->leaderboard);
 
-	// get the player info
-	$query = "SELECT steamid, name, avatar, updated FROM spelunky_players";
-	$result = $db->query($query);
-	while ($row = $result->fetch_assoc()) {
-		$database[$row['steamid']]['name'] = $row['name'];
-		$database[$row['steamid']]['avatar'] = $row['avatar'];
-		$database[$row['steamid']]['updated'] = $row['updated'];
-	}
-
-	foreach($array['entries']['entry'] as $key => $value) {
-		if (in_array($value['steamid'],$members)) {
-			if ($value['score'] == "0") continue; // if you're in the middle of a run it will return 0
-			$scores[$value['steamid']]['score'] = $value['score'];
-
-			// Characters are stored as hex values, converting to decimal
-			$scores[$value['steamid']]['character'] = hexdec(substr($value['details'], 0, 2));
-
-			// Levels ares stored as hex values from 0-19, so convert them into what's shown on the leaderboards in-game
-			$scores[$value['steamid']]['level'] = hexdec(substr($value['details'], 8, 2));
-
-			// do we know you?
-			if (!$database[$value['steamid']]) { // also deal with if it was last updated X days ago
-				$info = get_player_info($value['steamid']);
-				update_player($info);
-
-				$database[$value['steamid']]['name'] = $info['name'];
-				$database[$value['steamid']]['avatar'] = $info['avatar'];
+			// it's the first time we have results
+			if (!$this->stored) {
+				$query = "INSERT INTO spelunky_games(leaderboard_id, date) VALUES(" . $this->leaderboard_id . ", '" . $this->get_date() . "')";
+				$db->query($query);
+				$stored = TRUE;
 			}
 
-			$scores[$value['steamid']]['name'] = $database[$value['steamid']]['name'];
-			$scores[$value['steamid']]['avatar'] = $database[$value['steamid']]['avatar'];
+			return TRUE; // we made changes
+		} else {
+			return FALSE; // there weren't changes
 		}
 	}
 
-
-	// IF THERE ARE PEOPLE IN THE GROUP NOT PRESENT, CHECK AGAIN?
-	return $scores;
-}
-
-// Find the id for the daily challenge leaderboard. Defaults to today.
-function get_leaderboard($date = FALSE) {
-	global $db;
-
-	if (!$date) $date = date('m/d/Y');
-	else $date = date("m/d/Y",strtotime($date));
-	$today = date("m/d/Y",strtotime($date)) . ' DAILY';
-	$leaderboard = '';
-
-	$url = 'http://steamcommunity.com/stats/239350/leaderboards/?xml=1';
-
-	$xml = file_get_contents($url);
-	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
-	$json = json_encode($ob);
-	$array = json_decode($json, true);
-
-	foreach($array['leaderboard'] as $key => $value) {
-		if ($value['name'] == $today) {
-			$leaderboard = $value['lbid'];
-		}
+	public function get_leaderboard() {
+		return $this->leaderboard;
 	}
 
-	if ($leaderboard) {
-		$query = "SELECT date FROM spelunky_games WHERE leaderboard_id=" . $leaderboard;
+	public function get_date($format = NULL) {
+		if (!$format) return date("Y-m-d",$this->date);
+		else return date($format,$this->date);
+	}
+
+	public function is_active() {
+		// it's today AND before 7 EST, OR tomorrow AND after 7 today
+		if ( (strtotime($this->get_date()) == strtotime(date("Y-m-d")) && date("G") < 19) || (strtotime($this->get_date()) == strtotime(date("Y-m-d",strtotime("tomorrow"))) && date("G") > 18)  ) return TRUE;
+		else return FALSE;
+	}
+
+	public function display() {
+		if (!count($this->leaderboard)) {
+			echo "<p class=\"textbox\">There are no entries for this date</p>\r";
+			return false;
+		}  
+		echo "<table id=\"scoreboard\">\r";
+		echo "<tr>\r";
+		echo "<th scope=\"col\">Rank</th>\r";
+		echo "<th scope=\"col\">Player</th>\r";
+		echo "<th scope=\"col\">Score</th>\r";
+		echo "<th scope=\"col\">Died on</th>\r";
+		echo "<th scope=\"col\">Character</th>\r";
+		echo "<th scope=\"col\">Awards</th>\r";
+		echo "</tr>\r\r";
+		$i = 1;
+		foreach ($this->leaderboard as $entry) {
+			echo "<tr>\r";
+			echo "<td>" . $i . "</td>\r";
+			echo "<td><a href=\"/stats/" . $entry['name'] . "/\">" . $entry['name'] . "</a></td>\r";
+			echo "<td>$" . number_format($entry['score']) . "</td>";
+			echo "<td>" . $entry['level'] . "</td>";
+			echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
+			echo "<td style=\"width:90px;\">";
+			if ($entry['awards']['global_score']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
+			if ($entry['awards']['global_level']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
+			if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+			if ($entry['awards']['personal_level']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
+			echo "</td>\r";
+			echo "</tr>\r\r";
+			$i++;
+		}
+		echo "</table>\r\r";
+	}
+
+	// etc
+
+	// PRIVATE FUNCTIONS
+	// refresh the data from Steam
+	private function refresh() {
+		global $db, $steam;
+
+		// have we run update() before?
+		if (!$this->members) $this->members = $this->get_group_members($steam['group']);
+
+		// do we have a stored leaderboard_id?
+		if (!$this->leaderboard_id) {
+			$today = $this->get_date("m/d/Y") . ' DAILY';
+			$url = 'http://steamcommunity.com/stats/239350/leaderboards/?xml=1';
+			$xml = file_get_contents($url);
+			$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+			$json = json_encode($ob);
+			$array = json_decode($json, true);
+			foreach($array['leaderboard'] as $key => $value) {
+				if ($value['name'] == $today) {
+					$this->leaderboard_id = $value['lbid'];
+					break;
+				}
+			}
+
+			if (!$this->leaderboard_id) die("Fatal error: no leaderboard for " . $this->get_date());
+		}
+
+		// using my id, then grabbing the scores for anyone in the group
+		$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $this->leaderboard_id . '/?xml=1&steamid=' . $steam['steamid64'];
+		$xml = file_get_contents($player_spelunky_leaderboard);
+		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+		$json = json_encode($ob);
+		$array = json_decode($json, true);
+
+		if (!$array['entries']) return NULL;
+
+		// get the player info
+		$query = "SELECT steamid, name, avatar, updated FROM spelunky_players";
 		$result = $db->query($query);
-		$row = $result->fetch_assoc();
-
-		// this is the first time we've loaded this leaderboard
-		// it will save the id even if there are no scores, yes. 
-		// and we have to check again to see if we've posted the geeklist item
-		// (which we DO only do if there are scores). it's not perfect, but
-		// if we don't do it here the date is kind of a pain to pass in.
-		if (!$row) {
-			$query = "INSERT INTO spelunky_games(leaderboard_id, date) VALUES(" . $leaderboard . ", '" . date("Y-m-d",strtotime($date)) . "')";
-			$db->query($query);
+		while ($row = $result->fetch_assoc()) {
+			$database[$row['steamid']]['name'] = $row['name'];
+			$database[$row['steamid']]['avatar'] = $row['avatar'];
+			$database[$row['steamid']]['updated'] = $row['updated'];
 		}
+
+		foreach($array['entries']['entry'] as $key => $value) {
+			if (in_array($value['steamid'],$this->members)) {
+				if ($value['score'] == "0") continue; // if you're in the middle of a run it will return 0
+				$leaderboard[$value['steamid']]['score'] = $value['score'];
+
+				// Characters are stored as hex values, converting to decimal
+				$leaderboard[$value['steamid']]['character'] = hexdec(substr($value['details'], 0, 2));
+
+				// Levels ares stored as hex values from 0-19, so convert them into what's shown on the leaderboards in-game
+				$leaderboard[$value['steamid']]['level'] = hexdec(substr($value['details'], 8, 2));
+
+				// do we know you?
+				if (!$database[$value['steamid']]) { // also deal with if it was last updated X days ago
+					$info = get_player_info($value['steamid']);
+					update_player($info);
+
+					$database[$value['steamid']]['name'] = $info['name'];
+					$database[$value['steamid']]['avatar'] = $info['avatar'];
+				}
+
+				$leaderboard[$value['steamid']]['name'] = $database[$value['steamid']]['name'];
+				$leaderboard[$value['steamid']]['avatar'] = $database[$value['steamid']]['avatar'];
+			}
+		}
+
+
+		// IF THERE ARE PEOPLE IN THE GROUP NOT PRESENT, CHECK AGAIN?
+		return $leaderboard;
 	}
 
-	return $leaderboard;
-}
+	// grab the users in a group (easiest way to get everybody in the BGGWW community)
+	private function get_group_members($group) {
+		$xml = file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
+		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+		$json = json_encode($ob);
+		$array = json_decode($json, TRUE);
 
-function get_saved_leaderboard($leaderboard_id) {
-	global $db;
-
-	$best['score'] = get_best_score();
-	$best['level'] = get_best_level();
-
-	$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $leaderboard_id . " ORDER BY score DESC, level DESC, name ASC";
-	$result = $db->query($query);
-	while ($row = $result->fetch_assoc()) {
-		$leaderboard[$row['steamid']]['name'] = $row['name'];
-		$leaderboard[$row['steamid']]['score'] = $row['score'];
-		$leaderboard[$row['steamid']]['level'] = level($row['level']);
-		$leaderboard[$row['steamid']]['character'] = $row['character_used'];
-
-		unset($personal);
-		$personal['score'] = get_best_score($row['steamid']);
-		$personal['level'] = get_best_level($row['steamid']);
-
-		if ($leaderboard_id == $best['score']['leaderboard_id'] && $row['steamid'] == $best['score']['steamid']) $leaderboard[$row['steamid']]['awards']['global_score'] = TRUE;
-		if ($leaderboard_id == $personal['score']['leaderboard_id']) $leaderboard[$row['steamid']]['awards']['personal_score'] = TRUE;
-		if ($leaderboard_id == $best['level']['leaderboard_id'] && $row['steamid'] == $best['level']['steamid']) $leaderboard[$row['steamid']]['awards']['global_level'] = TRUE;
-		if ($leaderboard_id == $personal['level']['leaderboard_id']) $leaderboard[$row['steamid']]['awards']['personal_level'] = TRUE;
+		return $array['members']['steamID64'];
 	}
-
-	return $leaderboard;
-}
-
-// grab the users in a group (easiest way to get everybody in the BGGWW community)
-function get_group_members($group) {
-	$xml = file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
-	$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
-	$json = json_encode($ob);
-	$array = json_decode($json, TRUE);
-
-	return $array['members']['steamID64'];
-}
+} // end class
 
 function get_player_info($steamid) {
 	$xml = file_get_contents("http://steamcommunity.com/profiles/" . $steamid . "/?xml=1");
@@ -251,39 +326,6 @@ function save_leaderboard($leaderboard, $leaderboard_id) {
 	return $changed;
 }
 
-function print_leaderboard($leaderboard) {
-	if (!count($leaderboard)) {
-		echo "<p class=\"textbox\">There are no entries for this date</p>\r";
-		return false;
-	}  
-	echo "<table id=\"scoreboard\">\r";
-	echo "<tr>\r";
-	echo "<th scope=\"col\">Rank</th>\r";
-	echo "<th scope=\"col\">Player</th>\r";
-	echo "<th scope=\"col\">Score</th>\r";
-	echo "<th scope=\"col\">Died on</th>\r";
-	echo "<th scope=\"col\">Character</th>\r";
-	echo "<th scope=\"col\">Awards</th>\r";
-	echo "</tr>\r\r";
-	$i = 1;
-	foreach ($leaderboard as $entry) {
-		echo "<tr>\r";
-		echo "<td>" . $i . "</td>\r";
-		echo "<td><a href=\"/stats/" . $entry['name'] . "/\">" . $entry['name'] . "</a></td>\r";
-		echo "<td>$" . number_format($entry['score']) . "</td>";
-		echo "<td>" . $entry['level'] . "</td>";
-		echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
-		echo "<td style=\"width:90px;\">";
-		if ($entry['awards']['global_score']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
-		if ($entry['awards']['global_level']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
-		if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
-		if ($entry['awards']['personal_level']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
-		echo "</td>\r";
-		echo "</tr>\r\r";
-		$i++;
-	}
-	echo "</table>\r\r";
-}
 
 function level($level) {
 	return ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));

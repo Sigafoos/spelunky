@@ -14,7 +14,7 @@ echo "</nav>";
  
 // get the current leaderboard
 $lb = new Leaderboard($_GET['date']);
-$lb->display();
+echo $lb->format();
 
 require('footer.inc.php');
 ?>

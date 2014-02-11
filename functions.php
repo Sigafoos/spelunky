@@ -134,11 +134,6 @@ class Leaderboard {
 	public function update_geeklist() {
 		global $db;
 
-		// it only takes stored stuff
-		if (!$this->geeklist->get_geeklist_item()) {
-			echo "\033[1mError:\033[0m No geeklist stored.\n\nRun ./spelunky -u to update database\n";
-			return FALSE;
-		}
 		// so we can post
 		if (!is_logged_in()) login();
 

@@ -24,6 +24,10 @@ class Leaderboard {
 		if (!$date) $this->date = time();
 		else $this->date = strtotime($date);
 
+		// $this->leaderboard
+		// needs to be initialized here or else things can get weird later
+		$this->leaderboard = array();
+
 		// $this->leaderboard_id
 		// if it's not in the db, don't sweat it; we'll grab it during update()
 		$query = "SELECT leaderboard_id, geeklist FROM spelunky_games WHERE date='" . $this->get_date() . "'";
@@ -75,17 +79,13 @@ class Leaderboard {
 
 		// new stuff!
 		if ($changes) {
-			// check for geeklist
-			// update BGG
-			// comment
+			global $db;
+			$comments = "";
 
 			$best['score'] = get_best_score();
 			$best['level'] = get_best_level();
 
 			foreach($changes as $steamid=>$entry) {
-				$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
-				$db->query($query);
-
 				// you did it
 				//$comments .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
 
@@ -99,14 +99,20 @@ class Leaderboard {
 				// did you beat everyone else ever omg?
 				if ($entry['score'] > $best['score']) $comments .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
 				if ($entry['level'] > $best['level']) $comments .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
+
+				$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $this->leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
+				$db->query($query);
 			}
 
-			$this->update_geeklist();
-			echo count($changes) . " new entries imported\n";
-
-			// update the leaderboard
-			// WILL NOT BE PROPERLY ORDERED
+			// update the leaderboard with new values
 			$this->leaderboard = array_merge($changes,$this->leaderboard);
+			$this->sort();
+
+			$this->update_geeklist();
+
+			if ($comments) $this->geeklist->comment($comments); // alert people of new high scores
+
+			echo count($changes) . " new entries imported\n";
 
 			// it's the first time we have results
 			if (!$this->stored) {
@@ -153,9 +159,6 @@ class Leaderboard {
 			$query = "UPDATE spelunky_games SET geeklist=" . $this->geeklist->get_geeklist_item() . " WHERE leaderboard_id=" . $this->leaderboard_id;
 			$db->query($query);
 		}
-
-
-		//if ($comments) geeklist_comment($comments, $this->geeklist_id); // alert people of new scores
 	}
 
 	public function get_leaderboard() {
@@ -323,7 +326,22 @@ class Leaderboard {
 
 		return $array['members']['steamID64'];
 	}
+
+	private function sort() {
+		return uasort($this->leaderboard,"sort_leaderboard");
+	}
 } // end class
+
+// sorts the leaderboard based on score, then level, then name
+function sort_leaderboard($a, $b) {
+	if ($a['score'] < $b['score']) return 1;
+	else if ($a['score'] > $b['score']) return -1;
+	// scores are equal, compare levels
+	else if ($a['level'] < $b['level']) return 1;
+	else if ($a['level'] > $b['level']) return -1;
+	// okaaay, how about names?
+	else return -(strcmp($a['name'],$b['name']));
+}
 
 function get_player_info($steamid) {
 	$xml = file_get_contents("http://steamcommunity.com/profiles/" . $steamid . "/?xml=1");
@@ -530,7 +548,7 @@ class Geeklist {
 	}
 
 	// NOT TESTED
-	public function comment($comment, $item_id) {
+	public function comment($comment) {
 		global $bgg;
 
 		$ch = curl_init("http://videogamegeek.com/geekcomment.php");
@@ -541,7 +559,7 @@ class Geeklist {
 
 		$data = array(
 				"action"		=>	"save",
-				"objectid"		=>	$item_id,
+				"objectid"		=>	$this->geeklist_item,
 				"objecttype"		=>	"listitem",
 				"geek_link_select_1"	=>	NULL,
 				"sizesel"		=>	"10",

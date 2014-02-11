@@ -13,9 +13,8 @@ else echo "next day";
 echo "</nav>";
  
 // get the current leaderboard
-$leaderboard_id = get_leaderboard($_GET['date']);
-if ($leaderboard_id) $leaderboard = get_saved_leaderboard($leaderboard_id);
-print_leaderboard($leaderboard);
+$lb = new Leaderboard($_GET['date']);
+$lb->display();
 
 require('footer.inc.php');
 ?>

@@ -25,12 +25,28 @@ if ($argc == 1) {
 	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n";
 } else { // actual commands (you can run more than one, if you want to for some reason)
 	if (in_array("-g",$argv) || in_array("--geeklist",$argv)) {
-		echo "Coming soon\n";
+		require('functions.php');
+		echo "Updating geeklist\n";
+
+		// if it's after 9 EST, stop
+		if (date("G") < 21) {
+			$leaderboard_id = get_leaderboard();
+			$leaderboard = get_saved_leaderboard($leaderboard_id);
+			update_leaderboard($leaderboard, $leaderboard_id);
+		}
+
+		// if it's after 7 pm EST
+		if (date("G") > 18) {
+			$leaderboard_id = get_leaderboard(date("m/d/Y",strtotime("tomorrow")));
+			$leaderboard = get_saved_leaderboard($leaderboard_id);
+			update_leaderboard($leaderboard, $leaderboard_id);
+		}
 	}
 
 	if (in_array("-u",$argv) || in_array("--update",$argv)) {
 		echo "Forcing update\n\n";
-		echo exec("php cron.php"); // do the update now
+		// I do it like this in case I update cron. Why duplicate work?
+		echo exec("php cron.php");
 	}
 }
 ?>

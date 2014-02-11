@@ -32,7 +32,15 @@ class Leaderboard {
 			$this->stored = TRUE;
 
 			$this->leaderboard_id = $row['leaderboard_id'];
-			$this->geeklist_item = $row['geeklist']; // if it's null, we'll auto-create one later (but it shouldn't be)
+
+			// build the geeklist
+			// I'm abstracting the Spelunky data so it can be reused
+			$geeklist_data = array(
+					"objectid"	=>	"73701",
+					"geekitemname"	=>	"Spelunky",
+					"imageid"	=>	"1850139"
+					);
+			$this->geeklist = new Geeklist($row['geeklist'],$geeklist_data); // if it's null, we'll auto-create one later (but it shouldn't be)
 
 			// $this->leaderboard (don't bother checking if we don't have a lbid)
 			$best['score'] = get_best_score();
@@ -43,7 +51,7 @@ class Leaderboard {
 			while ($row = $result->fetch_assoc()) {
 				$this->leaderboard[$row['steamid']]['name'] = $row['name'];
 				$this->leaderboard[$row['steamid']]['score'] = $row['score'];
-				$this->leaderboard[$row['steamid']]['level'] = level($row['level']);
+				$this->leaderboard[$row['steamid']]['level'] = $row['level'];
 				$this->leaderboard[$row['steamid']]['character'] = $row['character_used'];
 
 				unset($personal);
@@ -62,6 +70,7 @@ class Leaderboard {
 	// check if there are updates, and if so notify BGG
 	public function update() {
 		$new = $this->refresh();
+		$changes = array();
 		foreach ($new as $steamid=>$data) if (!@$this->leaderboard[$steamid]) $changes[$steamid] = $data;
 
 		// new stuff!
@@ -92,25 +101,8 @@ class Leaderboard {
 				if ($entry['level'] > $best['level']) $comments .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
 			}
 
-			// so we can post
-			if (!is_logged_in()) login();
-
-			// the main geeklist
-			$geeklist_id = get_geeklist(date("Y-m"));
-			if (!$geeklist_id) $geeklist_id = new_geeklist();
-
-			$geeklist_item = geeklist_entry($leaderboard,$geeklist_id,$this->geeklist_item);
-
-			// do we not have a glid (probably only if it's the first run through)
-			if (!$this->geeklist_item) {
-				$query = "UPDATE spelunky_games SET geeklist=" . $geeklist_item . " WHERE leaderboard_id=" . $this->leaderboard_id;
-				$db->query($query);
-				$this->geeklist_item = $geeklist_item;
-			}
-
-
-			if ($comments) geeklist_comment($comments, $this->geeklist_id); // alert people of new scores
-			echo count($changed) . " new entries imported\n";
+			$this->update_geeklist();
+			echo count($changes) . " new entries imported\n";
 
 			// update the leaderboard
 			// WILL NOT BE PROPERLY ORDERED
@@ -131,11 +123,39 @@ class Leaderboard {
 
 	// edit the geeklist item
 	public function update_geeklist() {
+		global $db;
+
 		// it only takes stored stuff
-		if (!$this->geeklist_item) {
+		if (!$this->geeklist->get_geeklist_item()) {
 			echo "\033[1mError:\033[0m No geeklist stored.\n\nRun ./spelunky -u to update database\n";
 			return FALSE;
 		}
+		// so we can post
+		if (!is_logged_in()) login();
+
+		// the main geeklist
+		if (!$this->geeklist->get_geeklist_id()) {
+			$query = "SELECT geeklist_id FROM spelunky_geeklists WHERE date='" . $this->get_date("Y-m") . "-01'";
+			$result = $db->query($query);
+			if ($row = $result->fetch_assoc()) {
+				$this->geeklist->set_geeklist_id($row['geeklist_id']);
+			} else {
+				$this->geeklist->new_geeklist("Spelunking Werewolves: " . $this->get_date("F Y") . " edition!","The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\n\nIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.");
+
+				// if you want to geekmail everyone, do it here
+				$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . $this->get_date("Y-m") . "-01', " . $this->geeklist->get_geeklist_id() . ")";
+				$db->query($query);
+			}
+		}
+
+		if ($this->geeklist->item($this->format("geeklist"))) {
+			// do we not have a glid (probably only if it's the first run through)
+			$query = "UPDATE spelunky_games SET geeklist=" . $this->geeklist->get_geeklist_item() . " WHERE leaderboard_id=" . $this->leaderboard_id;
+			$db->query($query);
+		}
+
+
+		//if ($comments) geeklist_comment($comments, $this->geeklist_id); // alert people of new scores
 	}
 
 	public function get_leaderboard() {
@@ -153,40 +173,70 @@ class Leaderboard {
 		else return FALSE;
 	}
 
-	public function display() {
-		if (!count($this->leaderboard)) {
-			echo "<p class=\"textbox\">There are no entries for this date</p>\r";
-			return false;
-		}  
-		echo "<table id=\"scoreboard\">\r";
-		echo "<tr>\r";
-		echo "<th scope=\"col\">Rank</th>\r";
-		echo "<th scope=\"col\">Player</th>\r";
-		echo "<th scope=\"col\">Score</th>\r";
-		echo "<th scope=\"col\">Died on</th>\r";
-		echo "<th scope=\"col\">Character</th>\r";
-		echo "<th scope=\"col\">Awards</th>\r";
-		echo "</tr>\r\r";
-		$i = 1;
-		foreach ($this->leaderboard as $entry) {
-			echo "<tr>\r";
-			echo "<td>" . $i . "</td>\r";
-			echo "<td><a href=\"/stats/" . $entry['name'] . "/\">" . $entry['name'] . "</a></td>\r";
-			echo "<td>$" . number_format($entry['score']) . "</td>";
-			echo "<td>" . $entry['level'] . "</td>";
-			echo "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
-			echo "<td style=\"width:90px;\">";
-			if ($entry['awards']['global_score']) echo "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
-			if ($entry['awards']['global_level']) echo "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
-			if ($entry['awards']['personal_score']) echo "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
-			if ($entry['awards']['personal_level']) echo "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
-			echo "</td>\r";
-			echo "</tr>\r\r";
-			$i++;
-		}
-		echo "</table>\r\r";
-	}
+	public function format($format = "table") {
+		if ($format == "table") {
+			if (!count($this->leaderboard)) {
+				$return .= "<p class=\"textbox\">There are no entries for this date</p>\r";
+				return false;
+			}  
+			$return .= "<table id=\"scoreboard\">\r";
+			$return .= "<tr>\r";
+			$return .= "<th scope=\"col\">Rank</th>\r";
+			$return .= "<th scope=\"col\">Player</th>\r";
+			$return .= "<th scope=\"col\">Score</th>\r";
+			$return .= "<th scope=\"col\">Died on</th>\r";
+			$return .= "<th scope=\"col\">Character</th>\r";
+			$return .= "<th scope=\"col\">Awards</th>\r";
+			$return .= "</tr>\r\r";
+			$i = 1;
+			foreach ($this->leaderboard as $entry) {
+				$return .= "<tr>\r";
+				$return .= "<td>" . $i . "</td>\r";
+				$return .= "<td><a href=\"/stats/" . $entry['name'] . "/\">" . $entry['name'] . "</a></td>\r";
+				$return .= "<td>$" . number_format($entry['score']) . "</td>";
+				$return .= "<td>" . $entry['level'] . "</td>";
+				$return .= "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
+				$return .= "<td style=\"width:90px;\">";
+				if ($entry['awards']['global_score']) $return .= "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";
+				if ($entry['awards']['global_level']) $return .= "<img src=\"/images/vladcape.png\" style=\"width:28px;height:30px\" alt=\"Global best level\" title=\"Global best level\" />";
+				if ($entry['awards']['personal_score']) $return .= "<img src=\"/images/idol.png\" style=\"width:24px;height:30px\" alt=\"Personal highest score\" title=\"Personal highest score\" />";
+				if ($entry['awards']['personal_level']) $return .= "<img src=\"/images/compass.png\" style=\"width:35px;height:30px\" alt=\"Personal best level\" title=\"Personal best level\" />";
+				$return .= "</td>\r";
+				$return .= "</tr>\r\r";
+				$i++;
+			}
+			$return .= "</table>\r\r";
 
+		} else if ($format == "geeklist") {
+			global $siteurl;
+
+			$return = "[size=16][b]" . $this->get_date("F j, Y") . "[/b][/size]\n\n";
+
+			// let's make this look all pretty-like
+			$i = 1;
+			$line = "---------------------------------------------------\n";
+			$return .= "[o][c]" . $line;
+			$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
+			foreach ($this->leaderboard as $entry) {
+				$return .= "| " . $i;
+				if ($i < 10) $return .= " ";
+				$return .= "   | ";
+				$return .= $entry['name'];
+				for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
+				$score = number_format($entry['score']);
+				$return .= "| ";
+				for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
+				$return .= "$" . $score . " ";
+				$return .= "| " . level($entry['level']) . "  |\n" . $line;
+				$i++;
+			}
+			$return .= "[/o]\n";
+			$return .= "[url=" . $siteurl . "/" . $this->get_date("Y/m/d") . "/]Full leaderboard[/url][/c]";
+		}
+
+		return $return;
+
+	}
 	// etc
 
 	// PRIVATE FUNCTIONS
@@ -263,33 +313,6 @@ class Leaderboard {
 		return $leaderboard;
 	}
 
-	private function format() {
-		global $siteurl;
-
-		$return = "[size=16][b]" . $this->get_date("F j, Y") . "[/b][/size]\n\n";
-
-		// let's make this look all pretty-like
-		$i = 1;
-		$line = "---------------------------------------------------\n";
-		$return .= "[o][c]" . $line;
-		$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
-		foreach ($this->leaderboard as $entry) {
-			$return .= "| " . $i;
-			if ($i < 10) $return .= " ";
-			$return .= "   | ";
-			$return .= $entry['name'];
-			for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
-			$score = number_format($entry['score']);
-			$return .= "| ";
-			for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
-			$return .= "$" . $score . " ";
-			$return .= "| " . level($entry['level']) . "  |\n" . $line;
-			$i++;
-		}
-		$return .= "[/o]\n";
-		$return .= "[url=" . $siteurl . "/" . $this->get_date("Y/m/d") . "/]Full leaderboard[/url][/c]";
-		return $return;
-	}
 
 	// grab the users in a group (easiest way to get everybody in the BGGWW community)
 	private function get_group_members($group) {
@@ -394,133 +417,157 @@ function array_remove($needle, $haystack) {
 }
 
 
-/***** BGG FUNCTIONS *****/
-// create a new geeklist, submit it, enter the geeklist_id in the database, return the geeklsit_id
-function new_geeklist() {
-	global $db, $bgg;
+class Geeklist {
+	private $geeklist_id; // the main list
+	private $geeklist_item;
+	private $game; // what you're updating (if you want to change multiple things, leave this null on construction and write a function for it)
 
-	$ch = curl_init("http://videogamegeek.com/geeklist/save");
-	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
-	curl_setopt($ch, CURLOPT_POST, TRUE);
+	function __construct($geeklist_item = 0, $game = NULL) {
+		if ($geeklist_item === NULL) $geeklist_item = 0;
+		$this->geeklist_item = $geeklist_item;
 
-	// the meat of it
-	$description = "The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\n\nIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.";
-	$data = array(
-			"listid"		=>	NULL,
-			"action"		=>	"savelist",
-			"geek_link_select_1"	=>	NULL,
-			"sizesel"		=>	"10",
-			"title"			=>	"Spelunking Werewolves: " . date("F Y") . " edition!",
-			"description"		=>	$description,
-			"subscribe"		=>	"1",
-			"domains[videogame]"	=>	"1",
-			"allowcomments"		=>	"1",
-			"specialsort"		=>	"none",
-			"B1"			=>	"Save %26 Continue To Step 2"
-		     );
-
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-
-	$output = curl_exec($ch);
-	$info = curl_getinfo($ch);
-	curl_close($ch);
-
-	preg_match("/([0-9]+)/",$info['redirect_url'],$matches);
-	$geeklist_id = $matches[1];
-
-	if (!$geeklist_id) {
-		echo "FATAL ERROR: No geeklist id";
-		return FALSE;
+		if ($game) $this->game = $game;
 	}
 
-	// we entered the geeklist, now we need to submit it
-	$ch = curl_init("http://videogamegeek.com/geeklist/submit/" . $geeklist_id);
-	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	// create a new geeklist, submit it, enter the geeklist_id in the database, return the geeklsit_id
+	// NOT UPDATED
+	private function new_geeklist($title, $description) {
+		global $db, $bgg;
 
-	$output = curl_exec($ch);
-	$info = curl_getinfo($ch);
-	curl_close($ch);
+		$ch = curl_init("http://videogamegeek.com/geeklist/save");
+		curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+		curl_setopt($ch, CURLOPT_POST, TRUE);
 
-	// if you want to geekmail everyone, do it here
-	$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . date("Y") . "-" . date("m") . "-01', " . $geeklist_id . ")";
-	$db->query($query);
+		// the meat of it
+		$data = array(
+				"listid"		=>	NULL,
+				"action"		=>	"savelist",
+				"geek_link_select_1"	=>	NULL,
+				"sizesel"		=>	"10",
+				"title"			=>	$title,
+				"description"		=>	$description,
+				"subscribe"		=>	"1",
+				"domains[videogame]"	=>	"1",
+				"allowcomments"		=>	"1",
+				"specialsort"		=>	"none",
+				"B1"			=>	"Save %26 Continue To Step 2"
+			     );
 
-	return $geeklist_id;
-}
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
 
-function geeklist_entry($leaderboard,$geeklist_id, $item_id = 0) {
-	global $db, $bgg;
+		$output = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);
 
-	$ch = curl_init("http://videogamegeek.com/geeklist/item/save");
-	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
-	curl_setopt($ch, CURLOPT_POST, TRUE);
+		preg_match("/([0-9]+)/",$info['redirect_url'],$matches);
+		$this->geeklist_id = $matches[1];
 
-	$data = array(
-			"action"		=>	"save",
-			"listid"		=>	$geeklist_id,
-			"itemid"		=>	$item_id,
-			"objectid"		=>	"73701", // Spelunky
-			"geekitemname"		=>	"Spelunky",
-			"objecttype"		=>	"thing",
-			"imageid"		=>	"1850139", // the HD image
-			"geek_link_select_1"	=>	NULL,
-			"sizesel"		=>	"10",
-			"comments"		=>	format_leaderboard($leaderboard),
-			"B1"			=>	"Save"
-		     );
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+		if (!$this->geeklist_id) {
+			echo "FATAL ERROR: No geeklist id";
+			return FALSE;
+		}
 
-	$output = curl_exec($ch);
-	$info = curl_getinfo($ch);
-	curl_close($ch);
+		// we entered the geeklist, now we need to submit it
+		$ch = curl_init("http://videogamegeek.com/geeklist/submit/" . $this->geeklist_id);
+		curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
 
-	preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
-	$glid = $matches[1];
-	if (!$glid) echo "*** Error with url " . $info['redirect_url'] . " in geeklist_entry(\$leaderboard," . $geeklist_id . "," . $item_id;
-	return $glid;
-}
+		$output = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);
+	}
 
-function geeklist_comment($comment, $item_id) {
-	global $bgg;
+	// update/post a geeklist item
+	// returns TRUE if item was created
+	public function item($comment) {
+		if (!$this->game) {
+			die("\033[1mError:\033[0m I don't know what game to use for the item. Specify upon construction.\n");
+		} else if (!$this->geeklist_id) {
+			die("\033[1mError:\033[0m No main geeklist created. Use \$this->get_geeklist_id() to retrieve or \$this->new_geeklist() to create.\n");
+		}
 
-	$ch = curl_init("http://videogamegeek.com/geekcomment.php");
-	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
-	curl_setopt($ch, CURLOPT_POST, TRUE);
+		global $db, $bgg;
 
-	$data = array(
-			"action"		=>	"save",
-			"objectid"		=>	$item_id,
-			"objecttype"		=>	"listitem",
-			"geek_link_select_1"	=>	NULL,
-			"sizesel"		=>	"10",
-			"body"			=>	$comment,
-			"ajax"			=>	"1", // but is it?
-			"B1"			=>	"Save"
-		     );
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+		$ch = curl_init("http://videogamegeek.com/geeklist/item/save");
+		curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+		curl_setopt($ch, CURLOPT_POST, TRUE);
 
-	$output = curl_exec($ch);
-	$info = curl_getinfo($ch);
-	curl_close($ch);
-}
+		$data = array(
+				"action"		=>	"save",
+				"listid"		=>	$this->geeklist_id,
+				"itemid"		=>	$this->geeklist_item,
+				"objectid"		=>	$this->game['objectid'],
+				"geekitemname"		=>	$this->game['geekitemname'],
+				"objecttype"		=>	"thing",
+				"imageid"		=>	$this->game['imageid'],
+				"geek_link_select_1"	=>	NULL,
+				"sizesel"		=>	"10",
+				"comments"		=>	$comment,
+				"B1"			=>	"Save"
+			     );
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
 
-// expects date("Y-m")
-function get_geeklist($month) {
-	global $db;
+		$output = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);
 
-	$query = "SELECT geeklist_id FROM spelunky_geeklists WHERE date='" . $month . "-01'";
-	$result = $db->query($query);
-	$row = $result->fetch_assoc();
+		preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
+		$glid = $matches[1];
+		if (!$glid) echo "*** Error with url " . $info['redirect_url'];
 
-	return $row['geeklist_id'];
+		// update the geeklist item
+		if ($glid != $this->geeklist_item) {
+			$this->geeklist_item = $glid;
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	}
+
+	// NOT TESTED
+	public function comment($comment, $item_id) {
+		global $bgg;
+
+		$ch = curl_init("http://videogamegeek.com/geekcomment.php");
+		curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+		curl_setopt($ch, CURLOPT_POST, TRUE);
+
+		$data = array(
+				"action"		=>	"save",
+				"objectid"		=>	$item_id,
+				"objecttype"		=>	"listitem",
+				"geek_link_select_1"	=>	NULL,
+				"sizesel"		=>	"10",
+				"body"			=>	$comment,
+				"ajax"			=>	"1", // but is it?
+				"B1"			=>	"Save"
+			     );
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+		$output = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);
+	}
+
+	public function get_geeklist_id() {
+		return $this->geeklist_id;
+	}
+
+	public function get_geeklist_item() {
+		return $this->geeklist_item;
+	}
+
+	public function set_geeklist_id($id) {
+		$this->geeklist_id = $id;
+	}
+
 }
 
 function login() {

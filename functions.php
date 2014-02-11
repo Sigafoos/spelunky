@@ -577,7 +577,7 @@ function format_leaderboard($leaderboard, $date = NULL) {
 	// let's make this look all pretty-like
 	$i = 1;
 	$line = "---------------------------------------------------\n";
-	$return .= "[c]" . $line;
+	$return .= "[o][c]" . $line;
 	$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
 	foreach ($leaderboard as $entry) {
 		$return .= "| " . $i;
@@ -592,8 +592,8 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		$return .= "| " . level($entry['level']) . "  |\n" . $line;
 		$i++;
 	}
+	$return .= "[/o]\n";
 	$return .= "[url=" . $siteurl . "/" . date("Y/m/d",strtotime($date)) . "/]Full leaderboard[/url]\n\n";
-	$return .= "Updated " . date("g:i a") . "[/c]";
 	return $return;
 }
 

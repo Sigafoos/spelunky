@@ -79,6 +79,7 @@ class Leaderboard {
 
 		// new stuff!
 		if ($changes) {
+			echo count($changes) . " new entries detected\n";
 			global $db;
 			$comments = "";
 
@@ -93,12 +94,13 @@ class Leaderboard {
 				unset($personal);
 				$personal['score'] = get_best_score($steamid);
 				$personal['level'] = get_best_level($steamid);
-				if ($entry['score'] > $personal['score']) $comments .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
-				if ($entry['level'] > $personal['level']) $comments .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
+
+				if ($entry['score'] > $personal['score']['score']) $comments .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
+				if ($entry['level'] > $personal['level']['level']) $comments .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
 
 				// did you beat everyone else ever omg?
-				if ($entry['score'] > $best['score']) $comments .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
-				if ($entry['level'] > $best['level']) $comments .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
+				if ($entry['score'] > $best['score']['score']) $comments .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
+				if ($entry['level'] > $best['level']['level']) $comments .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
 
 				$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $this->leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
 				$db->query($query);
@@ -108,11 +110,12 @@ class Leaderboard {
 			$this->leaderboard = array_merge($changes,$this->leaderboard);
 			$this->sort();
 
+			echo "Updating geeklist...\n";
 			$this->update_geeklist();
 
+			if ($comments) echo "Sending comments...\n";
 			if ($comments) $this->geeklist->comment($comments); // alert people of new high scores
 
-			echo count($changes) . " new entries imported\n";
 
 			// it's the first time we have results
 			if (!$this->stored) {

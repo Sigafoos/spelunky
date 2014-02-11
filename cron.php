@@ -18,5 +18,5 @@ if (date("G") > 18) {
 	$leaderboard = get_leaderboard_data($members,$leaderboard_id);
 	save_leaderboard($leaderboard, $leaderboard_id);
 }
-echo "All shiny, cap'n"; // turn this off or pipe the output into /dev/null
+echo "All shiny, cap'n\n"; // turn this off or pipe the output into /dev/null
 ?>

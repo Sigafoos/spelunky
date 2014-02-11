@@ -1,0 +1,22 @@
+#!/usr/bin/php
+<?php
+echo "\n";
+if ($argc == 1) {
+	echo "\t\033[1mUSAGE:\033[0m\n" . $argv[0] . " [options]\n\n";
+	echo "\tFor a list of options, use the -h or --help flag\n";
+} else if (in_array($argv[1],array("-h","--help","-help","-?"))) {
+	echo "\t\033[1mAVAILABLE COMMANDS:\033[0m\n\n";
+	echo "\t\t-g, --geeklist\t\tForce update to the geeklist\n\n";
+	echo "\t\t-h, --help\t\tDisplay this menu\n\n";
+	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n\n";
+} else { // actual commands (you can run more than one, if you want to for some reason)
+	if (in_array("-g",$argv) || in_array("--geeklist",$argv)) {
+		echo "Coming soon\n";
+	}
+
+	if (in_array("-u",$argv) || in_array("--update",$argv)) {
+		echo "Forcing update\n\n";
+		echo exec("php cron.php"); // do the update now
+	}
+}
+?>

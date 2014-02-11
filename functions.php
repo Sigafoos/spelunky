@@ -9,6 +9,7 @@ class Leaderboard {
 	private $date; // actually a timestamp
 	private $leaderboard_id;
 	private $leaderboard;
+	private $geeklist_item;
 	private $members;
 
 	private $stored = FALSE; // is it in the database already?
@@ -25,12 +26,13 @@ class Leaderboard {
 
 		// $this->leaderboard_id
 		// if it's not in the db, don't sweat it; we'll grab it during update()
-		$query = "SELECT leaderboard_id FROM spelunky_games WHERE date='" . $this->get_date() . "'";
+		$query = "SELECT leaderboard_id, geeklist FROM spelunky_games WHERE date='" . $this->get_date() . "'";
 		$result = $db->query($query);
 		if ($row = $result->fetch_assoc()) {
 			$this->stored = TRUE;
 
 			$this->leaderboard_id = $row['leaderboard_id'];
+			$this->geeklist_item = $row['geeklist']; // if it's null, we'll auto-create one later (but it shouldn't be)
 
 			// $this->leaderboard (don't bother checking if we don't have a lbid)
 			$best['score'] = get_best_score();
@@ -60,17 +62,55 @@ class Leaderboard {
 	// check if there are updates, and if so notify BGG
 	public function update() {
 		$new = $this->refresh();
-		array_pop($this->leaderboard); // TAKE THIS OUT AFTER DEBUGGING!
-		array_pop($this->leaderboard); // TAKE THIS OUT AFTER DEBUGGING!
-
 		foreach ($new as $steamid=>$data) if (!@$this->leaderboard[$steamid]) $changes[$steamid] = $data;
 
 		// new stuff!
 		if ($changes) {
-			// insert into db
 			// check for geeklist
 			// update BGG
 			// comment
+
+			$best['score'] = get_best_score();
+			$best['level'] = get_best_level();
+
+			foreach($changes as $steamid=>$entry) {
+				$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
+				$db->query($query);
+
+				// you did it
+				//$comments .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
+
+				// did you beat your own best?
+				unset($personal);
+				$personal['score'] = get_best_score($steamid);
+				$personal['level'] = get_best_level($steamid);
+				if ($entry['score'] > $personal['score']) $comments .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
+				if ($entry['level'] > $personal['level']) $comments .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
+
+				// did you beat everyone else ever omg?
+				if ($entry['score'] > $best['score']) $comments .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
+				if ($entry['level'] > $best['level']) $comments .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
+			}
+
+			// so we can post
+			if (!is_logged_in()) login();
+
+			// the main geeklist
+			$geeklist_id = get_geeklist(date("Y-m"));
+			if (!$geeklist_id) $geeklist_id = new_geeklist();
+
+			$geeklist_item = geeklist_entry($leaderboard,$geeklist_id,$this->geeklist_item);
+
+			// do we not have a glid (probably only if it's the first run through)
+			if (!$this->geeklist_item) {
+				$query = "UPDATE spelunky_games SET geeklist=" . $geeklist_item . " WHERE leaderboard_id=" . $this->leaderboard_id;
+				$db->query($query);
+				$this->geeklist_item = $geeklist_item;
+			}
+
+
+			if ($comments) geeklist_comment($comments, $this->geeklist_id); // alert people of new scores
+			echo count($changed) . " new entries imported\n";
 
 			// update the leaderboard
 			// WILL NOT BE PROPERLY ORDERED
@@ -86,6 +126,15 @@ class Leaderboard {
 			return TRUE; // we made changes
 		} else {
 			return FALSE; // there weren't changes
+		}
+	}
+
+	// edit the geeklist item
+	public function update_geeklist() {
+		// it only takes stored stuff
+		if (!$this->geeklist_item) {
+			echo "\033[1mError:\033[0m No geeklist stored.\n\nRun ./spelunky -u to update database\n";
+			return FALSE;
 		}
 	}
 
@@ -214,6 +263,34 @@ class Leaderboard {
 		return $leaderboard;
 	}
 
+	private function format() {
+		global $siteurl;
+
+		$return = "[size=16][b]" . $this->get_date("F j, Y") . "[/b][/size]\n\n";
+
+		// let's make this look all pretty-like
+		$i = 1;
+		$line = "---------------------------------------------------\n";
+		$return .= "[o][c]" . $line;
+		$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
+		foreach ($this->leaderboard as $entry) {
+			$return .= "| " . $i;
+			if ($i < 10) $return .= " ";
+			$return .= "   | ";
+			$return .= $entry['name'];
+			for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
+			$score = number_format($entry['score']);
+			$return .= "| ";
+			for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
+			$return .= "$" . $score . " ";
+			$return .= "| " . level($entry['level']) . "  |\n" . $line;
+			$i++;
+		}
+		$return .= "[/o]\n";
+		$return .= "[url=" . $siteurl . "/" . $this->get_date("Y/m/d") . "/]Full leaderboard[/url][/c]";
+		return $return;
+	}
+
 	// grab the users in a group (easiest way to get everybody in the BGGWW community)
 	private function get_group_members($group) {
 		$xml = file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
@@ -238,6 +315,7 @@ function get_player_info($steamid) {
 	return $info;
 }
 
+// not in the class because they don't relate to a specific leaderboard
 function get_best_score($steamid = NULL) {
 	global $db;
 	// the ORDER BY is in case there's a tie; first come, first served
@@ -273,59 +351,6 @@ function update_player($player, $new = TRUE) {
 // I'll have to do work on this, so, uh, it doesn't exist
 function get_youtube() {
 }
-
-function save_leaderboard($leaderboard, $leaderboard_id) {
-	global $db;
-	$changed = FALSE;
-	$original_leaderboard = $leaderboard;
-
-	$query = "SELECT steamid FROM spelunky_game_entry WHERE leaderboard_id=" . $leaderboard_id;
-	$result = $db->query($query);
-	// if we have an entry, skip them
-	while ($row = $result->fetch_assoc()) {
-		if ($leaderboard[$row['steamid']]) {
-			// it'd be super great if there was an array_remove type function besides array_slice, 
-			// which doesn't work well/at all with associative arrays
-			$leaderboard = array_remove($row['steamid'],$leaderboard);
-		}
-	}
-
-	// is there anything that hasn't been inserted yet?
-	if (count($leaderboard) > 0) {
-		$changed = TRUE;
-		$comment = "";
-
-		$best['score'] = get_best_score();
-		$best['level'] = get_best_level();
-
-		foreach($leaderboard as $steamid=>$entry) {
-			$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
-			$db->query($query);
-
-			// you did it
-			//$comment .= $entry['name'] . " completed the daily challenge, scoring $" . number_format($entry['score']) . " and dying on " . level($entry['level']) . "\n";
-
-			// did you beat your own best?
-			unset($personal);
-			$personal['score'] = get_best_score($row['steamid']);
-			$personal['level'] = get_best_level($row['steamid']);
-			if ($entry['score'] > $personal['score']) $comment .= "[i]" . $entry['name'] . " beat their personal high score![/i]\n\n";
-			if ($entry['level'] > $personal['level']) $comment .= "[i]" . $entry['name'] . " beat their farthest level![/i]\n\n";
-
-			// did you beat everyone else ever omg?
-			if ($entry['score'] > $best['score']) $comment .= "[b]" . $entry['name'] . " beat the all-time high score![/b]\n\n";
-			if ($entry['level'] > $best['level']) $comment .= "[b]" . $entry['name'] . " beat the all-time farthest level![/b]\n\n";
-		}
-
-		if (!is_logged_in()) login();
-		$glid = update_leaderboard($original_leaderboard,$leaderboard_id);
-		if ($comment) geeklist_comment($comment, $glid); // alert people of new scores
-		echo count($leaderboard) . " new entries imported";
-	}
-
-	return $changed;
-}
-
 
 function level($level) {
 	return ceil($level / 4) . "-" . ($level % 4 == 0? 4 : ($level % 4));
@@ -582,61 +607,5 @@ function extractCookies($string) {
 	return $cookies;
 }
 
-function update_leaderboard($leaderboard, $leaderboard_id) {
-	global $db;
-
-	$query = "SELECT geeklist FROM spelunky_games WHERE leaderboard_id=" . $leaderboard_id;
-	$result = $db->query($query);
-	if ($result) {
-		$row = $result->fetch_assoc();
-		$geeklist_item = $row['geeklist']; // if it's null, we'll auto-create one later
-	} else {
-		$geeklist_item = NULL;
-	}
-
-	$geeklist_id = get_geeklist(date("Y-m"));
-	if (!$geeklist_id) $geeklist_id = new_geeklist();
-
-	$glid = geeklist_entry($leaderboard,$geeklist_id,$geeklist_item);
-
-	if ($geeklist_item != $glid) {
-		$query = "UPDATE spelunky_games SET geeklist=" . $glid . " WHERE leaderboard_id=" . $leaderboard_id;
-		$db->query($query);
-	}
-
-	return $glid;
-}
-
-function format_leaderboard($leaderboard, $date = NULL) {
-	global $siteurl;
-
-	if (!$date) {
-		if (date("G") < 19) $date = date("F j");
-		else $date = date("F j",strtotime("tomorrow"));
-	}
-	$return = "[size=16][b]" . $date . "[/b][/size]\n\n";
-
-	// let's make this look all pretty-like
-	$i = 1;
-	$line = "---------------------------------------------------\n";
-	$return .= "[o][c]" . $line;
-	$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
-	foreach ($leaderboard as $entry) {
-		$return .= "| " . $i;
-		if ($i < 10) $return .= " ";
-		$return .= "   | ";
-		$return .= $entry['name'];
-		for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
-		$score = number_format($entry['score']);
-		$return .= "| ";
-		for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
-		$return .= "$" . $score . " ";
-		$return .= "| " . level($entry['level']) . "  |\n" . $line;
-		$i++;
-	}
-	$return .= "[/o]\n";
-	$return .= "[url=" . $siteurl . "/" . date("Y/m/d",strtotime($date)) . "/]Full leaderboard[/url][/c]";
-	return $return;
-}
 
 ?>

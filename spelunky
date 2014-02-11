@@ -1,14 +1,28 @@
 #!/usr/bin/php
 <?php
+/* USAGE
+   php spelunky [options]
+
+   chmod 700 spelunky; then:
+   ./spelunky [options]
+
+   or for a really fancy time,
+   ln -s /path/to/spelunky /usr/bin/spelunky; then:
+   spelunky [options]
+ */
+
 echo "\n";
 if ($argc == 1) {
-	echo "\t\033[1mUSAGE:\033[0m\n" . $argv[0] . " [options]\n\n";
+	if ($argv[0] == "spelunky") $argv[0] = "php spelunky"; // this looks silly but I assure you it makes sense
+	else if ($argv[0] == "/usr/bin/spelunky") $argv[0] = "spelunky";
+
+	echo "\t\033[1mUSAGE:\033[0m\n\t" . $argv[0] . " [options]\n\n";
 	echo "\tFor a list of options, use the -h or --help flag\n";
 } else if (in_array($argv[1],array("-h","--help","-help","-?"))) {
 	echo "\t\033[1mAVAILABLE COMMANDS:\033[0m\n\n";
 	echo "\t\t-g, --geeklist\t\tForce update to the geeklist\n\n";
 	echo "\t\t-h, --help\t\tDisplay this menu\n\n";
-	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n\n";
+	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n";
 } else { // actual commands (you can run more than one, if you want to for some reason)
 	if (in_array("-g",$argv) || in_array("--geeklist",$argv)) {
 		echo "Coming soon\n";

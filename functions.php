@@ -119,7 +119,7 @@ function get_saved_leaderboard($leaderboard_id) {
 	$best['score'] = get_best_score();
 	$best['level'] = get_best_level();
 
-	$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $leaderboard_id . " ORDER BY score DESC";
+	$query = "SELECT spelunky_players.steamid, spelunky_players.name, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid WHERE leaderboard_id=" . $leaderboard_id . " ORDER BY score DESC, level DESC, name ASC";
 	$result = $db->query($query);
 	while ($row = $result->fetch_assoc()) {
 		$leaderboard[$row['steamid']]['name'] = $row['name'];

@@ -593,7 +593,7 @@ function format_leaderboard($leaderboard, $date = NULL) {
 		$i++;
 	}
 	$return .= "[/o]\n";
-	$return .= "[url=" . $siteurl . "/" . date("Y/m/d",strtotime($date)) . "/]Full leaderboard[/url]\n\n";
+	$return .= "[url=" . $siteurl . "/" . date("Y/m/d",strtotime($date)) . "/]Full leaderboard[/url][/c]";
 	return $return;
 }
 

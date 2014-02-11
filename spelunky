@@ -24,6 +24,8 @@ if ($argc == 1) {
 	echo "\t\t-h, --help\t\tDisplay this menu\n\n";
 	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n";
 } else { // actual commands (you can run more than one, if you want to for some reason)
+
+	// NOTE: since this only uses saved data, it will never add a comment. To use fresh data, run with -u
 	if (in_array("-g",$argv) || in_array("--geeklist",$argv)) {
 		require('functions.php');
 		echo "Updating geeklist\n";

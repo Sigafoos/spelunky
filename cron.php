@@ -6,6 +6,9 @@ require('functions.php');
 if (date("G") < 21) {
 	$lb = new Leaderboard();
 	$lb->update();
+
+	// at 7 post the full results
+	if (date("G") == 19) $lb->update_geeklist();
 }
 
 // if it's after 7 pm EST

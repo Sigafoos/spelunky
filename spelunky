@@ -16,37 +16,67 @@ if ($argc == 1) {
 	if ($argv[0] == "spelunky") $argv[0] = "php spelunky"; // this looks silly but I assure you it makes sense
 	else if ($argv[0] == "/usr/bin/spelunky") $argv[0] = "spelunky";
 
-	echo "\t\033[1mUSAGE:\033[0m\n\t" . $argv[0] . " [options]\n\n";
+	echo "\t\033[1mUSAGE:\033[0m\n\t" . $argv[0] . " [OPTION] [-d date, --date=date]\n\n";
 	echo "\tFor a list of options, use the -h or --help flag\n";
 } else if (in_array($argv[1],array("-h","--help","-help","-?"))) {
 	echo "\t\033[1mAVAILABLE COMMANDS:\033[0m\n\n";
 	echo "\t\t-g, --geeklist\t\tForce update to the geeklist\n\n";
 	echo "\t\t-h, --help\t\tDisplay this menu\n\n";
-	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n";
-} else { // actual commands (you can run more than one, if you want to for some reason)
+	echo "\t\t-u, --update\t\tForce update (will also update geeklist)\n\n";
+	echo "\tOptionally,\n\n";
+	echo "\t\t-d [date], --date=[date]\n\n";
+	echo "\tThis will specify the date to select. Format can be any accepted by PHP's strtotime() (ie \"2014-02-12\", \"tomorrow\", \"January 4\"). Place quotes around dates with spaces.\n";
+} else { // actual commands
+	require('functions.php');
+	if (@$argv[2] == "-d") $date = $argv[3];
+	else if (@preg_match("/^--date=['\"]?(.+)['\"]?$/",$argv[2],$matches)) $date = $matches[1];
+	else $date = NULL;
 
 	// NOTE: since this only uses saved data, it will never add a comment. To use fresh data, run with -u
-	if (in_array("-g",$argv) || in_array("--geeklist",$argv)) {
-		require('functions.php');
-		echo "Updating geeklist\n";
+	if (in_array($argv[1],array("-g","--geeklist"))) {
+		echo "Updating geeklist...\n";
 
-		// if it's after 9 EST, stop
-		if (date("G") < 21) {
-			$lb = new Leaderboard();
+		// if you aren't specifying, run as usual
+		if (!$date) {
+			// if it's after 9 EST, stop
+			if (date("G") < 21) {
+				$lb = new Leaderboard();
+				$lb->update_geeklist();
+			}
+
+			// if it's after 7 pm EST
+			if (date("G") > 18) {
+				$lb = new Leaderboard("tomorrow");
+				$lb->update_geeklist();
+			}
+		} else {
+			$lb = new Leaderboard($date);
 			$lb->update_geeklist();
 		}
+		echo "Updated.\n";
+	} else if (in_array($argv[1],array("-u","--update"))) {
+		echo "Forcing update...\n\n";
+		if (!$date) {
+			// get the current leaderboard
+			// if it's after 9 EST, stop
+			if (date("G") < 21) {
+				$lb = new Leaderboard();
+				$lb->update();
 
-		// if it's after 7 pm EST
-		if (date("G") > 18) {
-			$lb = new Leaderboard("tomorrow");
-			$lb->update_geeklist();
+				// at 7 post the full results
+				if (date("G") == 19) $lb->update_geeklist();
+			}
+
+			// if it's after 7 pm EST
+			if (date("G") > 18) {
+				$lb = new Leaderboard("tomorrow");
+				$lb->update();
+			}
+		} else {
+			$lb = new Leaderboard($date);
+			$lb->update();
 		}
-	}
-
-	if (in_array("-u",$argv) || in_array("--update",$argv)) {
-		echo "Forcing update\n\n";
-		// I do it like this in case I update cron. Why duplicate work?
-		echo exec("php cron.php");
+		echo "All shiny, cap'n\n"; // turn this off or pipe the output into /dev/null
 	}
 }
 ?>

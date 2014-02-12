@@ -28,6 +28,13 @@ class Leaderboard {
 		// needs to be initialized here or else things can get weird later
 		$this->leaderboard = array();
 
+		// I'm abstracting the Spelunky data so the geeklist code can be reused
+		$geeklist_data = array(
+				"objectid"	=>	"73701",
+				"geekitemname"	=>	"Spelunky",
+				"imageid"	=>	"1850139"
+				);
+
 		// $this->leaderboard_id
 		// if it's not in the db, don't sweat it; we'll grab it during update()
 		$query = "SELECT leaderboard_id, geeklist FROM spelunky_games WHERE date='" . $this->get_date() . "'";
@@ -38,12 +45,6 @@ class Leaderboard {
 			$this->leaderboard_id = $row['leaderboard_id'];
 
 			// build the geeklist
-			// I'm abstracting the Spelunky data so it can be reused
-			$geeklist_data = array(
-					"objectid"	=>	"73701",
-					"geekitemname"	=>	"Spelunky",
-					"imageid"	=>	"1850139"
-					);
 			$this->geeklist = new Geeklist($row['geeklist'],$geeklist_data); // if it's null, we'll auto-create one later (but it shouldn't be)
 
 			// $this->leaderboard (don't bother checking if we don't have a lbid)
@@ -67,6 +68,8 @@ class Leaderboard {
 				if ($this->leaderboard_id == $best['level']['leaderboard_id'] && $row['steamid'] == $best['level']['steamid']) $this->leaderboard[$row['steamid']]['awards']['global_level'] = TRUE;
 				if ($this->leaderboard_id == $personal['level']['leaderboard_id']) $this->leaderboard[$row['steamid']]['awards']['personal_level'] = TRUE;
 			}
+		} else {
+			$this->geeklist = new Geeklist(NULL,$geeklist_data);
 		}
 	}
 
@@ -79,7 +82,7 @@ class Leaderboard {
 
 		// new stuff!
 		if ($changes) {
-			echo count($changes) . " new entries detected\n";
+			echo count($changes) . " new entries detected...\n";
 			global $db;
 			$comments = "";
 
@@ -105,23 +108,27 @@ class Leaderboard {
 				$query = "INSERT INTO spelunky_game_entry(steamid, leaderboard_id, score, level, character_used) VALUES(" . $steamid . ", " . $this->leaderboard_id . ", " . $entry['score'] . ", '" . $entry['level'] . "', " . $entry['character'] . ")";
 				$db->query($query);
 			}
-
-			// update the leaderboard with new values
-			$this->leaderboard = array_merge($changes,$this->leaderboard);
-			$this->sort();
-
-			echo "Updating geeklist...\n";
-			$this->update_geeklist();
-
-			if ($comments) echo "Sending comments...\n";
-			if ($comments) $this->geeklist->comment($comments); // alert people of new high scores
-
+			echo "Entries imported.\n";
 
 			// it's the first time we have results
 			if (!$this->stored) {
 				$query = "INSERT INTO spelunky_games(leaderboard_id, date) VALUES(" . $this->leaderboard_id . ", '" . $this->get_date() . "')";
 				$db->query($query);
 				$stored = TRUE;
+			}
+
+			// update the leaderboard with new values
+			$this->leaderboard = array_merge($changes,$this->leaderboard);
+			$this->sort();
+			echo "Leaderboard sorted.\n";
+
+			echo "Updating geeklist...\n";
+			$this->update_geeklist();
+
+			// alert people of new high scores
+			if ($comments) {
+				echo "Sending comments...\n";
+				$this->geeklist->comment($comments); 
 			}
 
 			return TRUE; // we made changes
@@ -132,6 +139,8 @@ class Leaderboard {
 
 	// edit the geeklist item
 	public function update_geeklist() {
+		if (!$this->leaderboard) die("\033[1mError:\033[0m No players have completed the challenge for " . $this->get_date() . "\n");
+
 		global $db;
 
 		// so we can post
@@ -143,16 +152,19 @@ class Leaderboard {
 			$result = $db->query($query);
 			if ($row = $result->fetch_assoc()) {
 				$this->geeklist->set_geeklist_id($row['geeklist_id']);
+				echo "Fetched geeklist id: " . $this->geeklist->get_geeklist_id() . "\n";
 			} else {
 				$this->geeklist->new_geeklist("Spelunking Werewolves: " . $this->get_date("F Y") . " edition!","The BGG Werewolf community takes on the Spelunky daily challenges. And die. A lot.\n\nIf you're a BGGWWer, add your score (and, optionally, video: see [url=http://boardgamegeek.com/article/14563725#14563725]how to record with ffsplit for PC[/url]) as a comment to the day's entry. Since the game resets in the evening, take the \"day\" of the challenge to be the day it was live at noon.");
 
 				// if you want to geekmail everyone, do it here
 				$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . $this->get_date("Y-m") . "-01', " . $this->geeklist->get_geeklist_id() . ")";
 				$db->query($query);
+				echo "Inserted new geeklist id: " . $this->geeklist->get_geeklist() . "\n";
 			}
 		}
 
 		if ($this->geeklist->item($this->format("geeklist"))) {
+			echo "New geeklist item created: " . $this->geeklist->get_geeklist_item() . "\n";
 			// do we not have a glid (probably only if it's the first run through)
 			$query = "UPDATE spelunky_games SET geeklist=" . $this->geeklist->get_geeklist_item() . " WHERE leaderboard_id=" . $this->leaderboard_id;
 			$db->query($query);
@@ -212,25 +224,34 @@ class Leaderboard {
 
 			$return = "[size=16][b]" . $this->get_date("F j, Y") . "[/b][/size]\n\n";
 
+			$return .= "[c]";
 			// let's make this look all pretty-like
-			$i = 1;
-			$line = "---------------------------------------------------\n";
-			$return .= "[o][c]" . $line;
-			$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
-			foreach ($this->leaderboard as $entry) {
-				$return .= "| " . $i;
-				if ($i < 10) $return .= " ";
-				$return .= "   | ";
-				$return .= $entry['name'];
-				for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
-				$score = number_format($entry['score']);
-				$return .= "| ";
-				for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
-				$return .= "$" . $score . " ";
-				$return .= "| " . level($entry['level']) . "  |\n" . $line;
-				$i++;
+			if ($this->is_active()) {
+				$names = array();
+				foreach ($this->leaderboard as $entry) $names[] = $entry['name'];
+				$return .= "The challenge has been completed by:\n\n";
+				if ($names) $return .= implode("\n",$names);
+				$return .= "\n\nThe full leaderboard will be posted at 6 pm BGG.\n";
+			} else { // it's done, print the leaderboard
+				$i = 1;
+				$line = "---------------------------------------------------\n";
+				$return .= $line;
+				$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
+				foreach ($this->leaderboard as $entry) {
+					$return .= "| " . $i;
+					if ($i < 10) $return .= " ";
+					$return .= "   | ";
+					$return .= $entry['name'];
+					for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
+					$score = number_format($entry['score']);
+					$return .= "| ";
+					for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
+					$return .= "$" . $score . " ";
+					$return .= "| " . level($entry['level']) . "  |\n" . $line;
+					$i++;
+				}
+				$return .= "\n";
 			}
-			$return .= "[/o]\n";
 			$return .= "[url=" . $siteurl . "/" . $this->get_date("Y/m/d") . "/]Full leaderboard[/url][/c]";
 		}
 
@@ -533,7 +554,7 @@ class Geeklist {
 
 		preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
 		$glid = $matches[1];
-		if (!$glid) echo "*** Error with url " . $info['redirect_url'];
+		if (!$glid) echo "*** Error with url " . $info['redirect_url'] . "\n";
 
 		// update the geeklist item
 		if ($glid != $this->geeklist_item) {

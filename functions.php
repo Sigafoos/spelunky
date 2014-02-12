@@ -230,7 +230,10 @@ class Leaderboard {
 				$names = array();
 				foreach ($this->leaderboard as $entry) $names[] = $entry['name'];
 				$return .= "The challenge has been completed by:\n\n";
-				if ($names) $return .= implode("\n",$names);
+				if ($names) {
+					sort($names);
+					$return .= implode("\n",$names);
+				}
 				$return .= "\n\nThe full leaderboard will be posted at 6 pm BGG.\n";
 			} else { // it's done, print the leaderboard
 				$i = 1;

@@ -177,10 +177,9 @@ class Leaderboard {
 	public function format($format = "table") {
 		if ($format == "table") {
 			if (!count($this->leaderboard)) {
-				$return .= "<p class=\"textbox\">There are no entries for this date</p>\r";
-				return false;
+				return "<p class=\"textbox\">There are no entries for this date</p>\r";
 			}  
-			$return .= "<table id=\"scoreboard\">\r";
+			$return = "<table id=\"scoreboard\">\r";
 			$return .= "<tr>\r";
 			$return .= "<th scope=\"col\">Rank</th>\r";
 			$return .= "<th scope=\"col\">Player</th>\r";

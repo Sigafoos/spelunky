@@ -206,7 +206,7 @@ class Leaderboard {
 				$return .= "<td>" . $i . "</td>\r";
 				$return .= "<td><a href=\"/stats/" . $entry['name'] . "/\">" . $entry['name'] . "</a></td>\r";
 				$return .= "<td>$" . number_format($entry['score']) . "</td>";
-				$return .= "<td>" . $entry['level'] . "</td>";
+				$return .= "<td>" . level($entry['level']) . "</td>";
 				$return .= "<td><img src=\"/images/char_" . character_icon($entry['character']) . ".png\" \></td>\r";
 				$return .= "<td style=\"width:90px;\">";
 				if ($entry['awards']['global_score']) $return .= "<img src=\"/images/chalice.png\" style=\"width:37px;height:30px\" alt=\"Global highest score\" title=\"Global highest score\" />";

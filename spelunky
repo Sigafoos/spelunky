@@ -32,18 +32,21 @@ if ($argc == 1) {
 	else if (@preg_match("/^--date=['\"]?(.+)['\"]?$/",$argv[2],$matches)) $date = $matches[1];
 	else $date = NULL;
 
+	$lb = new Leaderboard($date);
+
 	// NOTE: since this only uses saved data, it will never add a comment. To use fresh data, run with -u
 	if (in_array($argv[1],array("-g","--geeklist"))) {
 		echo "Updating geeklist...\n";
-		$lb = new Leaderboard($date);
 		$lb->update_geeklist();
 		echo "Updated.\n";
 
 	} else if (in_array($argv[1],array("-u","--update"))) {
 		echo "Forcing update...\n";
-		$lb = new Leaderboard($date);
 		$lb->update();
 		echo "All shiny, cap'n\n"; // turn this off or pipe the output into /dev/null
+
+	} else if (in_array($argv[1],array("-p","--print"))) {
+		echo $lb->format("text");
 	}
 }
 ?>

@@ -256,6 +256,25 @@ class Leaderboard {
 				$return .= "\n";
 			}
 			$return .= "[url=" . $siteurl . "/" . $this->get_date("Y/m/d") . "/]Full leaderboard[/url][/c]";
+		} else if ($format == "text") {
+			$i = 1;
+			$line = "---------------------------------------------------\n";
+			$return = $line;
+			$return .= "| Rank |       Player       |     Score    | Died |\n" . $line;
+			foreach ($this->leaderboard as $entry) {
+				$return .= "| " . $i;
+				if ($i < 10) $return .= " ";
+				$return .= "   | ";
+				$return .= $entry['name'];
+				for ($j = 0; $j < (19 - strlen($entry['name'])); $j++) $return .= " ";
+				$score = number_format($entry['score']);
+				$return .= "| ";
+				for ($j = 0; $j < (11 - strlen($score)); $j++) $return .= " ";
+				$return .= "$" . $score . " ";
+				$return .= "| " . level($entry['level']) . "  |\n" . $line;
+				$i++;
+			}
+			$return .= "\n";
 		}
 
 		return $return;
@@ -527,6 +546,9 @@ class Geeklist {
 		} else if (!$this->geeklist_id) {
 			die("\033[1mError:\033[0m No main geeklist created. Use \$this->get_geeklist_id() to retrieve or \$this->new_geeklist() to create.\n");
 		}
+
+		if (!$this->geeklist_id) echo "Inserting new geeklist item...\n";
+		else echo "Updating geeklist item...\n";
 
 		global $db, $bgg;
 

@@ -35,47 +35,14 @@ if ($argc == 1) {
 	// NOTE: since this only uses saved data, it will never add a comment. To use fresh data, run with -u
 	if (in_array($argv[1],array("-g","--geeklist"))) {
 		echo "Updating geeklist...\n";
-
-		// if you aren't specifying, run as usual
-		if (!$date) {
-			// if it's after 9 EST, stop
-			if (date("G") < 21) {
-				$lb = new Leaderboard();
-				$lb->update_geeklist();
-			}
-
-			// if it's after 7 pm EST
-			if (date("G") > 18) {
-				$lb = new Leaderboard("tomorrow");
-				$lb->update_geeklist();
-			}
-		} else {
-			$lb = new Leaderboard($date);
-			$lb->update_geeklist();
-		}
+		$lb = new Leaderboard($date);
+		$lb->update_geeklist();
 		echo "Updated.\n";
+
 	} else if (in_array($argv[1],array("-u","--update"))) {
-		echo "Forcing update...\n\n";
-		if (!$date) {
-			// get the current leaderboard
-			// if it's after 9 EST, stop
-			if (date("G") < 21) {
-				$lb = new Leaderboard();
-				$lb->update();
-
-				// at 7 post the full results
-				if (date("G") == 19) $lb->update_geeklist();
-			}
-
-			// if it's after 7 pm EST
-			if (date("G") > 18) {
-				$lb = new Leaderboard("tomorrow");
-				$lb->update();
-			}
-		} else {
-			$lb = new Leaderboard($date);
-			$lb->update();
-		}
+		echo "Forcing update...\n";
+		$lb = new Leaderboard($date);
+		$lb->update();
 		echo "All shiny, cap'n\n"; // turn this off or pipe the output into /dev/null
 	}
 }

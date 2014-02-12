@@ -231,7 +231,7 @@ class Leaderboard {
 				foreach ($this->leaderboard as $entry) $names[] = $entry['name'];
 				$return .= "The challenge has been completed by:\n\n";
 				if ($names) {
-					sort($names);
+					natcasesort($names);
 					$return .= implode("\n",$names);
 				}
 				$return .= "\n\nThe full leaderboard will be posted at 6 pm BGG.\n";

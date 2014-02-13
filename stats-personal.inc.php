@@ -50,7 +50,7 @@ echo "<strong>Median level reached</strong>: " . level($median['level']) . "</p>
 echo "<p><strong>Favorite character</strong> (" . current($characters) . " times): <img src=\"/images/char_" . character_icon(key($characters)) . ".png\" /></p>\r";
 echo "</div>\r";
 
-// echo "<h2>Game history</h2>"; // needs css
+echo "<h2>Game history</h2>"; // needs css
 rsort($games);
 ?>
 <table id="scoreboard">

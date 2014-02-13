@@ -397,24 +397,28 @@ function get_player_info($steamid) {
 }
 
 // not in the class because they don't relate to a specific leaderboard
-function get_best_score($steamid = NULL) {
+function get_best_score($steamid = NULL, $formatted = FALSE) {
 	global $db;
-	// the ORDER BY is in case there's a tie; first come, first served
-	$query = "SELECT leaderboard_id, steamid, score FROM spelunky_game_entry WHERE score=(SELECT max(score) FROM spelunky_game_entry";
-	if ($steamid) $query .= " WHERE steamid=" . $steamid . ") AND steamid=" . $steamid;
+	if ($formatted) $query = "SELECT date, name, score FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id";
+	else $query = "SELECT leaderboard_id, steamid, score FROM spelunky_game_entry";
+	$query .= " WHERE score=(SELECT max(score) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE spelunky_game_entry.steamid=" . $steamid . ") AND spelunky_game_entry.steamid=" . $steamid;
 	else $query .= ")";
-	$query .= " ORDER BY leaderboard_id ASC";
+	// the ORDER BY is in case there's a tie; first come, first served
+	$query .= " ORDER BY spelunky_game_entry.leaderboard_id ASC";
 	$result = $db->query($query);
 	return $result->fetch_assoc();
 }
 
-function get_best_level($steamid = NULL) {
+function get_best_level($steamid = NULL, $formatted = FALSE) {
 	global $db;
-	// the ORDER BY is in case there's a tie; first come, first served
-	$query = "SELECT leaderboard_id, steamid, level FROM spelunky_game_entry WHERE level=(SELECT max(level) FROM spelunky_game_entry";
-	if ($steamid) $query .= " WHERE steamid=" . $steamid . ") AND steamid=" . $steamid;
+	if ($formatted) $query = "SELECT date, name, level FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id";
+	else $query = "SELECT leaderboard_id, steamid, level FROM spelunky_game_entry";
+	$query .= " WHERE level=(SELECT max(level) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE spelunky_game_entry.steamid=" . $steamid . ") AND spelunky_game_entry.steamid=" . $steamid;
 	else $query .= ")";
-	$query .= " ORDER BY leaderboard_id ASC";
+	// the ORDER BY is in case there's a tie; first come, first served
+	$query .= " ORDER BY spelunky_game_entry.leaderboard_id ASC";
 	$result = $db->query($query);
 	return $result->fetch_assoc();
 }

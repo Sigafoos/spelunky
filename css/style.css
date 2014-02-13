@@ -73,6 +73,12 @@ width:512px;
       padding-top: 50px;
 }
 
+h2 {
+	text-align: center;
+	font-size: 1.5em;
+color:#fffee2;
+}
+
 p {
 margin: 1em;
 }
@@ -112,7 +118,6 @@ padding: 1em;
 }
 
 /* text classes */
-
 .center {
 	text-align:center;
 	margin-left: auto;

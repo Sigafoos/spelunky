@@ -35,6 +35,13 @@ $result = $db->query($query);
 $row = $result->fetch_assoc();
 $total['level'] = $row['avg(level)'];
 
+// where people died
+$query = "SELECT ceil(level/4), count(ceil(level/4)) FROM spelunky_game_entry GROUP BY ceil(level/4)";
+$result = $db->query($query);
+while ($row = $result->fetch_assoc()) $died[$row['ceil(level/4)']] = $row['count(ceil(level/4))'];
+// and just count(level)? 
+
+// top 10 games
 $query = "SELECT date, name, spelunky_game_entry.leaderboard_id, score, level, character_used FROM spelunky_game_entry INNER JOIN spelunky_players ON spelunky_game_entry.steamid=spelunky_players.steamid INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id ORDER BY score DESC, level DESC, date ASC LIMIT 10";
 $result = $db->query($query);
 while ($row = $result->fetch_assoc()) $games[] = $row;
@@ -51,6 +58,13 @@ echo "<strong>Average score</strong>: $" . number_format($total['score']/$total[
 
 echo "<p><strong>Farthest level reached</strong>: " . level($best['level']['level']) . " (" . $best['level']['name'] . ", <a href=\"" . date("/Y/m/d/",strtotime($best['level']['date'])) . "\">" . date("F j, Y",strtotime($best['level']['date'])) . "</a>)<br />\r";
 echo "<strong>Average level reached</strong>: " . level($total['level']) . "</p>\r";
+
+echo "<p><strong>Games ending in mines</strong>: " . $died[1] . " (" . round($died[1]/$total['games']*100,2) . "%)<br />\r";
+echo "<strong>Games ending in jungle</strong>: " . $died[2] . " (" . round($died[2]/$total['games']*100,2) . "%)<br />\r";
+echo "<strong>Games ending in ice caves</strong>: " . $died[3] . " (" . round($died[3]/$total['games']*100,2) . "%)<br />\r";
+echo "<strong>Games ending in temple</strong>: " . $died[4] . " (" . round($died[4]/$total['games']*100,2) . "%)<br />\r";
+echo "<strong>Games ending in Hell</strong>: " . $died[5] . " (" . round($died[5]/$total['games']*100,2) . "%)</p>\r";
+
 echo "</div>\r";
 ?>
 

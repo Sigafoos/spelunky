@@ -47,6 +47,24 @@ if ($argc == 1) {
 
 	} else if (in_array($argv[1],array("-p","--print"))) {
 		echo $lb->format("text");
+	} else if (in_array($argv[1],array("-i","--insert"))) {
+		echo "Player (case insensitive): ";
+		$player['name'] = trim(fread(STDIN,80));
+
+		echo "Date: ";
+		$date = trim(fread(STDIN,80));
+		
+		echo "Score (no commas): $";
+		$player['score'] = trim(fread(STDIN,80));
+		
+		echo "Level (5, not 4-1): ";
+		$player['name'] = trim(fread(STDIN,80));
+
+		echo "\n0\tOrange (default)\n1\tRed (turban)\n2\tGreen (woman)\n3\tBlue (safari)\n4\tWhite (Yang)\n5\tPink (Meat Boy)\n6\tYellow (miner)\n7\tBrown (jungle)\n8\tPurple (pirate woman)\n9\tBlack (Van Helsing)\n10\tCyan (furry)\n11\tLime (mariachi)\n12\tDLC1 (eskimo)\n13\tDLC2 (violet woman)\n14\tDLC3 (ninja)\n15\tDLC4 (viking)\n16\tDLC5 (mint man)\n17\tDLC6 (cyclops)\n18\tDLC7 (robot)\n19\tDLC8 (golden monk)\n\n";
+		echo "Character: ";
+		$player['character'] = trim(fread(STDIN,80));
+
+		echo "Cool, thanks\n";
 	}
 }
 ?>

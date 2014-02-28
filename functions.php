@@ -160,6 +160,7 @@ class Leaderboard {
 				$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . $this->get_date("Y-m") . "-01', " . $this->geeklist->get_geeklist_id() . ")";
 				$db->query($query);
 				echo "Inserted new geeklist id: " . $this->geeklist->get_geeklist() . "\n";
+				$this->geekmail_players();
 			}
 		}
 
@@ -356,7 +357,6 @@ class Leaderboard {
 		return $leaderboard;
 	}
 
-
 	// grab the users in a group (easiest way to get everybody in the BGGWW community)
 	private function get_group_members($group) {
 		$xml = file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
@@ -369,6 +369,17 @@ class Leaderboard {
 
 	private function sort() {
 		return uasort($this->leaderboard,"sort_leaderboard");
+	}
+
+	public function geekmail_players() {
+		global $db;
+
+		$query = "SELECT name FROM spelunky_players WHERE steamid IN (SELECT DISTINCT steamid FROM spelunky_game_entry INNER JOIN spelunky_games ON spelunky_game_entry.leaderboard_id=spelunky_games.leaderboard_id WHERE date > DATE_SUB(NOW(), INTERVAL 1 MONTH))";
+		$result = $db->query($query);
+		while ($row = $result->fetch_assoc()) $players[] = $row['name'];
+
+		$message = "Hello, Spelunker!\n\nThere's a new monthly geeklist up: http://videogamegeek.com/geeklist/" . $this->geeklist->get_geeklist_id() . "/\n\n[size=6]This is an automated message. If you have something to say about it, [url=http://videogamegeek.com/geekmail/compose?touser=Sigafoos]bug Sigafoos[/url][/size]";
+		geekmail(implode(",",$players),date("F") . " Spelunky geeklist",$message);
 	}
 } // end class
 

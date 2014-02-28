@@ -669,6 +669,38 @@ function is_logged_in() {
 	return $logged_in;
 }
 
+function geekmail($to, $subject, $message) {
+	global $bgg;
+	if (!is_logged_in()) login();
+
+	$ch = curl_init("http://videogamegeek.com/geekmail_controller.php");
+	curl_setopt($ch, CURLOPT_COOKIEJAR, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, $bgg['cookiejar']);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); // stfu
+	curl_setopt($ch, CURLOPT_POST, TRUE);
+	$data = array(
+			"action"		=>	"save",
+			"messageid"		=>	NULL,
+			"touser"		=>	$to,
+			"subject"		=>	$subject,
+			"savecopy"		=>	1,
+			"geek_link_select_1"	=>	NULL,
+			"sizesel"		=>	10,
+			"body"			=>	$message,
+			"B1"			=>	"Send",
+			"folder"		=>	"inbox",
+			"label"			=>	NULL,
+			"ajax"			=>	1,
+			"searchid"		=>	0,
+			"pageID"		=>	0
+		     );
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+	$output = curl_exec($ch);
+	$info = curl_getinfo($ch);
+	curl_close($ch);
+}
+
 /**
  * Extract any cookies found from the cookie file. This function expects to get
  * a string containing the contents of the cookie file which it will then
@@ -718,6 +750,4 @@ function extractCookies($string) {
 
 	return $cookies;
 }
-
-
 ?>

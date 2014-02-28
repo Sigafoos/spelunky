@@ -90,4 +90,3 @@ foreach ($games as $game) {
 echo "</table>\r\r";
 
 ?>
-<img src="/images/charts/pie.php" />

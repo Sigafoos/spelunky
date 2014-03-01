@@ -159,7 +159,7 @@ class Leaderboard {
 				// if you want to geekmail everyone, do it here
 				$query = "INSERT INTO spelunky_geeklists(date, geeklist_id) VALUES('" . $this->get_date("Y-m") . "-01', " . $this->geeklist->get_geeklist_id() . ")";
 				$db->query($query);
-				echo "Inserted new geeklist id: " . $this->geeklist->get_geeklist() . "\n";
+				echo "Inserted new geeklist id: " . $this->geeklist->get_geeklist_id() . "\n";
 				$this->geekmail_players();
 			}
 		}
@@ -502,9 +502,9 @@ class Geeklist {
 		if ($game) $this->game = $game;
 	}
 
-	// create a new geeklist, submit it, enter the geeklist_id in the database, return the geeklsit_id
+	// create a new geeklist, submit it, enter the geeklist_id in the database, return the geeklist_id
 	// NOT UPDATED
-	private function new_geeklist($title, $description) {
+	public function new_geeklist($title, $description) {
 		global $db, $bgg;
 
 		$ch = curl_init("http://videogamegeek.com/geeklist/save");

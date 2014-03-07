@@ -53,7 +53,7 @@ echo "</div>\r";
 echo "<h2>Game history</h2>"; // needs css
 rsort($games);
 ?>
-<table id="scoreboard">
+<table class="scoreboard">
 <tr>
 <th scope="col">Date</th>
 <th scope="col">Score</th>

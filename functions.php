@@ -192,7 +192,7 @@ class Leaderboard {
 			if (!count($this->leaderboard)) {
 				return "<p class=\"textbox\">There are no entries for this date</p>\r";
 			}  
-			$return = "<table id=\"scoreboard\">\r";
+			$return = "<table class=\"scoreboard\">\r";
 			$return .= "<tr>\r";
 			$return .= "<th scope=\"col\">Rank</th>\r";
 			$return .= "<th scope=\"col\">Player</th>\r";
@@ -430,6 +430,22 @@ function get_best_level($steamid = NULL, $formatted = FALSE) {
 	else $query .= ")";
 	// the ORDER BY is in case there's a tie; first come, first served
 	$query .= " ORDER BY spelunky_game_entry.leaderboard_id ASC";
+	$result = $db->query($query);
+	return $result->fetch_assoc();
+}
+
+function get_average_score($steamid = NULL) {
+	global $db;
+	$query = "SELECT avg(score) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE steamid=" . $steamid;
+	$result = $db->query($query);
+	return $result->fetch_assoc();
+}
+
+function get_average_level($steamid = NULL) {
+	global $db;
+	$query = "SELECT avg(level) FROM spelunky_game_entry";
+	if ($steamid) $query .= " WHERE steamid=" . $steamid;
 	$result = $db->query($query);
 	return $result->fetch_assoc();
 }

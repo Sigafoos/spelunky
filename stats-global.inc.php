@@ -46,6 +46,16 @@ $query = "SELECT date, name, spelunky_game_entry.leaderboard_id, score, level, c
 $result = $db->query($query);
 while ($row = $result->fetch_assoc()) $games[] = $row;
 
+// stats for everyone
+$query = "SELECT name, steamid FROM spelunky_players ORDER BY name";
+if (!$result = $db->query($query)) echo "<p class=\"textbox\">Uh oh: #" . $db->errno . ": " . $db->error . "</p>";
+while ($row = $result->fetch_assoc()) {
+	$players[$row['name']]['best']['score'] = get_best_score($row['steamid']);
+	$players[$row['name']]['best']['level'] = get_best_level($row['steamid']);
+	$players[$row['name']]['average']['score'] = get_average_score($row['steamid']);
+	$players[$row['name']]['average']['level'] = get_average_level($row['steamid']);
+}
+
 echo "<div class=\"textbox\">\r";
 echo "<p><strong>Total days played</strong>: " . number_format($total['days']) . "<br />\r";
 echo "<strong>Total players</strong>: " . $total['players'] . "<br />\r";
@@ -69,7 +79,7 @@ echo "</div>\r";
 ?>
 
 <h2>Top 10 Games</h2>
-<table id="scoreboard">
+<table class="scoreboard">
 <tr>
 <th scope="col">Date</th>
 <th scope="col">Player</th>
@@ -87,6 +97,27 @@ foreach ($games as $game) {
 	echo "<td><img src=\"/images/char_" . character_icon($game['character_used']) . ".png\" /></td>\r";
 	echo "</tr>\r\r";
 }
-echo "</table>\r\r";
-
 ?>
+</table>
+
+<h2>By player</h2>
+<table class="scoreboard">
+<tr>
+<th scope="col">Player</th>
+<th scope="col">Best score</th>
+<th scope="col">Average score</th>
+<th scope="col">Best level</th>
+<th scope="col">Average level</th>
+</tr>
+<?php
+foreach ($players as $name=>$stats) {
+	echo "<tr>\r";
+	echo "<td><a href=\"/stats/" . $name . "/\">" . $name . "</a></td>\r";
+	echo "<td>$" . number_format($stats['best']['score']['score']) . "</td>\r";
+	echo "<td>$" . number_format($stats['average']['score']['avg(score)']) . "</td>\r";
+	echo "<td>" . level($stats['best']['level']['level']) . "</td>\r";
+	echo "<td>" . level($stats['average']['level']['avg(level)']) . "</td>\r";
+	echo "</tr>\r";
+}
+?>
+</table>

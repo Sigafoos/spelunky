@@ -299,6 +299,7 @@ class Leaderboard {
 			$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 			$json = json_encode($ob);
 			$array = json_decode($json, true);
+			if (!$array) die("\033[1mFatal error\033[0m: Unable to retrieve leaderboard id\n");
 			foreach($array['leaderboard'] as $key => $value) {
 				if ($value['name'] == $today) {
 					$this->leaderboard_id = $value['lbid'];
@@ -306,7 +307,7 @@ class Leaderboard {
 				}
 			}
 
-			if (!$this->leaderboard_id) die("Fatal error: no leaderboard for " . $this->get_date());
+			if (!$this->leaderboard_id) die("\033[1mFatal error\033[0m: no leaderboard for " . $this->get_date() . "\n");
 		}
 
 		// using my id, then grabbing the scores for anyone in the group
@@ -315,6 +316,7 @@ class Leaderboard {
 		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 		$json = json_encode($ob);
 		$array = json_decode($json, true);
+		if (!$array) die("\033[1mFatal error\033[0m: Unable to retrieve leaderboard data\n");
 
 		if (!$array['entries']) return NULL;
 
@@ -363,6 +365,7 @@ class Leaderboard {
 		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 		$json = json_encode($ob);
 		$array = json_decode($json, TRUE);
+		if (!$array) die("\033[1mFatal error\033[0m: Unable to retrieve group members\n");
 
 		return $array['members']['steamID64'];
 	}

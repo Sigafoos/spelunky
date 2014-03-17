@@ -613,7 +613,7 @@ class Geeklist {
 		curl_close($ch);
 
 		preg_match("/([0-9]+$)/",$info['redirect_url'],$matches);
-		$glid = $matches[1];
+		$glid = @$matches[1];
 		if (!$glid) echo "*** Error with url " . $info['redirect_url'] . "\n";
 
 		// update the geeklist item

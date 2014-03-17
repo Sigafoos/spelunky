@@ -77,6 +77,7 @@ class Leaderboard {
 	// check if there are updates, and if so notify BGG
 	public function update() {
 		$new = $this->refresh();
+		if (!$new) die("\033[1mFatal error\033[0m: Unable to refresh data\n");
 		$changes = array();
 		foreach ($new as $steamid=>$data) if (!@$this->leaderboard[$steamid]) $changes[$steamid] = $data;
 
@@ -361,7 +362,7 @@ class Leaderboard {
 
 	// grab the users in a group (easiest way to get everybody in the BGGWW community)
 	private function get_group_members($group) {
-		$xml = file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
+		$xml = @file_get_contents("http://steamcommunity.com/gid/" . $group . "/memberslistxml/?xml=1");
 		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 		$json = json_encode($ob);
 		$array = json_decode($json, TRUE);

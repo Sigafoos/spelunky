@@ -313,7 +313,7 @@ class Leaderboard {
 
 		// using my id, then grabbing the scores for anyone in the group
 		$player_spelunky_leaderboard = 'http://steamcommunity.com/stats/239350/leaderboards/' . $this->leaderboard_id . '/?xml=1&steamid=' . $steam['steamid64'];
-		$xml = file_get_contents($player_spelunky_leaderboard);
+		if (!($xml = @file_get_contents($player_spelunky_leaderboard))) die("\033[1mFatal error\033[0m: Unable to retrieve leaderboard data\n");
 		$ob = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
 		$json = json_encode($ob);
 		$array = json_decode($json, true);

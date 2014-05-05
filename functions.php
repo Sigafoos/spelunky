@@ -383,7 +383,7 @@ class Leaderboard {
 		while ($row = $result->fetch_assoc()) $players[] = $row['name'];
 
 		$message = "Hello, Spelunker!\n\nThere's a new monthly geeklist up: http://videogamegeek.com/geeklist/" . $this->geeklist->get_geeklist_id() . "/\n\n[size=6]This is an automated message. If you have something to say about it, [url=http://videogamegeek.com/geekmail/compose?touser=Sigafoos]bug Sigafoos[/url][/size]";
-		geekmail(implode(",",$players),date("F") . " Spelunky geeklist",$message);
+		geekmail(implode(",",$players),date("F",strtotime("tomorrow")) . " Spelunky geeklist",$message);
 	}
 } // end class
 

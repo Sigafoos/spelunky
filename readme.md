@@ -1,9 +1,10 @@
-Hello!
+# TheSpelunkyProject
 
-Ultimately, this will:
+* Grabs scores from the Spelunky Daily Challenge Steam leaderboards and stores it locally, based on membership to a Steam group
+* Displays a leaderboard and aggregates statistics
+* Automatically creates/updates geeklists on VideoGameGeek
+* Sends geekmail to participants with links to a new monthly geeklist
+* Works via cron and command line
 
-- Grab the leaderboard data for a player list (in our case, from the BoardGameGeek.com Werewolf community)
-- Post it on the Spelunky geeklist for BGG (which might require some finagling)
-
-Currently, it:
-- Is a mostly-empty git repo
+## I don't use VGG. Why should I care?
+Don't use that part, then! You can still plug in the group id you want to use and track things locally.
